@@ -40,6 +40,8 @@ function configurate_server() {
     write_line "      - LOGGING_LEVEL=DEBUG"
     write_line "    networks:"
     write_line "      - testing_net"
+    write_line "    volumes:"
+    write_line "      - ./server/config.ini:/server/config.ini"
 }
 
 function configurate_client() {
@@ -54,6 +56,8 @@ function configurate_client() {
         write_line "      - CLI_LOG_LEVEL=DEBUG"
         write_line "    networks:"
         write_line "      - testing_net"
+        write_line "    volumes:"
+        write_line "      - ./client/config.yaml:/config.yaml"
         write_line "    depends_on:"
         write_line "      - server"
     done
