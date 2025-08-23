@@ -1,5 +1,8 @@
 import socket
 import logging
+import signal
+import sys
+
 
 
 class Server:
@@ -8,6 +11,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._client_skts = []
 
     def run(self):
         """
@@ -22,6 +26,10 @@ class Server:
         # the server
         while True:
             client_sock = self.__accept_new_connection()
+
+            # Almaceno el socket del cliente
+            self._client_skts.append(client_sock)
+
             self.__handle_client_connection(client_sock)
 
     def __handle_client_connection(self, client_sock):
@@ -42,6 +50,8 @@ class Server:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
+            # Elimino el socket almacenado
+            self._client_skts.remove(client_sock)
 
     def __accept_new_connection(self):
         """
@@ -56,3 +66,14 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+
+    def handle_sigterm_signal(self, signum, frame):
+        logging.info('Received SIGTERM signal')
+
+        for client_sock in self._client_skts:
+            client_sock.close()
+        
+        self._server_socket.close()
+        
+        logging.info('Resources closed successfully')
+        sys.exit(0)
