@@ -52,8 +52,8 @@ class Server:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
-            # Elimino el socket almacenado
-            self._client_skts.remove(client_sock)
+        # Elimino el socket almacenado
+        self._client_skts.remove(client_sock)
 
     def __accept_new_connection(self):
         """
@@ -73,9 +73,11 @@ class Server:
         logging.info('Received SIGTERM signal')
 
         for client_sock in self._client_skts:
+            logging.info('Closing client connection')
             client_sock.close()
         
         self._server_socket.close()
+        logging.info('Server connection closed')
         
         logging.info('Resources closed successfully')
         sys.exit(0)
