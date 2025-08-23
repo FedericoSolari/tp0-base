@@ -22,8 +22,10 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
+        
+        # Capturo el sigterm para hacer el handeleo 
+        signal.signal(signal.SIGTERM, server.handle_sigterm_signal)
+        
         while True:
             client_sock = self.__accept_new_connection()
 

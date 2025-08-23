@@ -51,10 +51,6 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog)
-
-    # Capturo el sigterm para hacer el handeleo 
-    signal.signal(signal.SIGTERM, server.handle_sigterm_signal)
-
     server.run()
 
 def initialize_log(logging_level):
