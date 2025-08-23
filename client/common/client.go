@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/op/go-logging"
 )
@@ -86,4 +89,13 @@ func (c *Client) StartClientLoop() {
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+
+func (c *Client) GracefulExit() {
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	log.Infof("Resources closed successfully | client_id: %v", c.config.ID)
+	os.Exit(0)
 }
