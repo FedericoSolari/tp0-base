@@ -111,14 +111,5 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
-
-	// Handeleo del sigterm
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		client.GracefulExit()
-	}()
-
 	client.StartClientLoop()
 }
