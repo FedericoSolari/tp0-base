@@ -13,6 +13,9 @@ class Server:
         self._server_socket.listen(listen_backlog)
         self._client_skts = []
 
+        # Capturo el sigterm para hacer el handeleo 
+        signal.signal(signal.SIGTERM, self.handle_sigterm_signal)
+        
     def run(self):
         """
         Dummy Server loop
@@ -23,8 +26,6 @@ class Server:
         """
 
         
-        # Capturo el sigterm para hacer el handeleo 
-        signal.signal(signal.SIGTERM, self.handle_sigterm_signal)
         
         while True:
             client_sock = self.__accept_new_connection()
