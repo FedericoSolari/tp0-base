@@ -24,7 +24,7 @@ class Server:
 
         
         # Capturo el sigterm para hacer el handeleo 
-        signal.signal(signal.SIGTERM, server.handle_sigterm_signal)
+        signal.signal(signal.SIGTERM, self.handle_sigterm_signal)
         
         while True:
             client_sock = self.__accept_new_connection()
