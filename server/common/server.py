@@ -19,10 +19,10 @@ class Server:
 
     def handle_sigterm_signal(self, signum, frame):
 
-        logging.info("action: handle_sigterm_signal | result: in progress")
+        # logging.info("action: handle_sigterm_signal | result: in progress")
+        logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
         self.clean_resourses()
-        logging.info("action: handle_sigterm_signal | result: success")
         
     def run(self):
         """
