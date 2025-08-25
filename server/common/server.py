@@ -55,18 +55,63 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            # recibo todo y decodifico el mensaje
+            msg = self.recv_all(client_sock).rstrip().decode('utf-8')
+            # addr = client_sock.getpeername()
+
+            bet_data = parse_bet_message(msg)
+            if bet_data:
+                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
+                # store_bet(
+                #     bet_data["first_name"],
+                #     bet_data["last_name"],
+                #     bet_data["document"],
+                #     bet_data["birthdate"],
+                #     bet_data["number"]
+                # )
+
+            client_sock.send(b"OK\n")
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
         # Elimino el socket almacenado
         self._client_skts.remove(client_sock)
+
+    def recv_all(self, client_sock):
+
+        buffer = bytearray()
+        found = False
+        while found == False:
+            chunk = client_sock.recv(256)
+            if not chunk:
+                break
+            buffer.extend(chunk)
+            
+            # busco el \n que significa el fin segun el protoolo definido
+            if b'\n' in chunk:
+                found = True
+            
+        return bytes(buffer)
+    
+    def send_all(skt, data: bytes):
+        """
+        Envía todos los bytes del mensaje por el socket.
+        Se asegura que todo se envíe, evitando short-write.
+        data debe contener el '\n' al final para indicar fin de mensaje.
+        """
+        total_sent = 0
+        total_len = len(data)
+
+        while total_sent < total_len:
+            try:
+                sent = skt.send(data[total_sent:])
+                if sent == 0:
+                    raise RuntimeError("socket connection broken")
+                total_sent += sent
+            except OSError as e:
+                logging.error(f"action: send_all | result: fail | error: {e}")
+                raise
 
     def __accept_new_connection(self):
         """
@@ -94,3 +139,29 @@ class Server:
         
         logging.info('Resources closed successfully')
         sys.exit(0)
+
+
+    def parse_bet_message(message: str):
+        """
+        Recibe un mensaje de apuesta separado por comas:
+        "FirstName,LastName,DNI,Birthdate,Number"
+        y devuelve un diccionario con los campos.
+        """
+        try:
+            parts = message.strip().split(',')
+            if len(parts) != 5:
+                raise ValueError("Mensaje con cantidad de campos incorrecta")
+
+            first_name, last_name, document, birthdate, number_str = parts
+            number = int(number_str)  # convertir el número a entero
+
+            return {
+                "first_name": first_name,
+                "last_name": last_name,
+                "document": document,
+                "birthdate": birthdate,
+                "number": number
+            }
+        except Exception as e:
+            logging.error(f"action: parse_bet | result: fail | error: {e}")
+            return None
