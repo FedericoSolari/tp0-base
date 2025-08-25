@@ -13,7 +13,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         # Agrego time out para que no se qude esperando por siempre una conxion
-        self._server_socket.settimeout(5.0)
+        self._server_socket.settimeout(15.0)
         self._client_skts = []
         self.shutdown = False
 
@@ -22,7 +22,6 @@ class Server:
 
     def handle_sigterm_signal(self, signum, frame):
 
-        # logging.info("action: handle_sigterm_signal | result: in progress")
         logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
         self.clean_resourses()
@@ -37,11 +36,13 @@ class Server:
         """
         while self.shutdown == False:
             try:
-                logging.info(f'Server: action: connecting')
+                # logging.info(f'action: connecting')
+                print("DEBUG: antes de TO", flush=True)
+                # time.sleep(0.5)
                 client_sock = self.__accept_new_connection()
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
-                logging.info(f'Server: action: Socket_timeOut | reintentando')
+                print(f'action: Socket_timeOut | reintentando', flush=True)
                 continue
             # Almaceno el socket del cliente
             self._client_skts.append(client_sock)
@@ -58,14 +59,14 @@ class Server:
         client socket will also be closed
         """
         try:
-            time.sleep(0.5)
+            # time.sleep(0.5)
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock).rstrip().decode('utf-8')
             # addr = client_sock.getpeername()
 
             bet_data = parse_bet_message(msg)
             if bet_data:
-                logging.info(f'Server: action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
+                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
                 # store_bet(
                 #     bet_data["first_name"],
                 #     bet_data["last_name"],
@@ -84,11 +85,12 @@ class Server:
 
     def recv_all(self, client_sock):
 
-        logging.info(f'Server: action: inicio recv_all')
+        print('action: inicio recv_all', flush=True)
         buffer = bytearray()
         found = False
+        print('action: inicio recv_all', flush=True)
         while found == False:
-            logging.info(f'Server: action: leyendo mensaje')
+            print(f'action: leyendo mensaje', flush=True)
             chunk = client_sock.recv(256)
             if not chunk:
                 logging.error(f'action: Error en la lectura del mensaje')
@@ -97,7 +99,7 @@ class Server:
             
             # busco el \n que significa el fin segun el protoolo definido
             if b'\n' in chunk:
-                logging.info(f'Server: action: mensaje leido')
+                print(f'action: mensaje leido', flush=True)
                 found = True
             
         return bytes(buffer)
@@ -108,19 +110,19 @@ class Server:
         Se asegura que todo se envíe, evitando short-write.
         data debe contener el '\n' al final para indicar fin de mensaje.
         """
-        logging.info(f'Server: action: comienza send_all')
+        print(f'action: comienza send_all', flush=True)
         total_sent = 0
         total_len = len(data)
 
         while total_sent < total_len:
-            logging.info(f'Server: action: enviando mensaje')
+            print(f'action: enviando mensaje', flush=True)
             try:
                 sent = skt.send(data[total_sent:])
                 if sent == 0:
                     raise RuntimeError("socket connection broken")
                 total_sent += sent
             except OSError as e:
-                logging.error(f"Server: action: send_all | result: fail | error: {e}")
+                logging.error(f"action: send_all | result: fail | error: {e}")
                 raise
 
     def __accept_new_connection(self):
@@ -130,24 +132,25 @@ class Server:
         Function blocks until a connection to a client is made.
         Then connection created is printed and returned
         """
+        print("DEBUG: antes de accept()", flush=True)
 
         # Connection arrived
-        logging.info('Server: action: accept_connections | result: in_progress')
+        logging.info('action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
-        logging.info(f'Server: action: accept_connections | result: success | ip: {addr[0]}')
+        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
 
     def clean_resourses(self):
-        logging.info('Server: Received SIGTERM signal')
+        logging.info('Received SIGTERM signal')
 
         for client_sock in self._client_skts:
-            logging.info('Server: Closing client connection')
+            logging.info('Closing client connection')
             client_sock.close()
         
         self._server_socket.close()
-        logging.info('Server: Server connection closed')
+        logging.info('Server connection closed')
         
-        logging.info('Server: Resources closed successfully')
+        logging.info('Resources closed successfully')
         sys.exit(0)
 
 
@@ -173,5 +176,5 @@ class Server:
                 "number": number
             }
         except Exception as e:
-            logging.error(f"Server: action: parse_bet | result: fail | error: {e}")
+            logging.error(f"action: parse_bet | result: fail | error: {e}")
             return None
