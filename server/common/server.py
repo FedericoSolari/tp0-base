@@ -11,6 +11,8 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        # Agrego time out para que no se qude esperando por siempre una conxion
+        self._server_socket.settimeout(5.0)
         self._client_skts = []
         self.shutdown = False
 
@@ -33,8 +35,11 @@ class Server:
         finishes, servers starts to accept new connections again
         """
         while self.shutdown == False:
-            client_sock = self.__accept_new_connection()
-
+            try:
+                client_sock = self.__accept_new_connection()
+            except socket.timeout:
+                # vuelvo a intentar obtener una conexion
+                continue
             # Almaceno el socket del cliente
             self._client_skts.append(client_sock)
 
