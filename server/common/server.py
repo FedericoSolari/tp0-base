@@ -12,9 +12,17 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._client_skts = []
+        self.shutdown = False
 
         # Capturo el sigterm para hacer el handeleo 
         signal.signal(signal.SIGTERM, self.handle_sigterm_signal)
+
+    def handle_sigterm_signal(self, signum, frame):
+
+        logging.info("action: handle_sigterm_signal | result: in progress")
+        self.shutdown = True
+        self.clean_resourses()
+        logging.info("action: handle_sigterm_signal | result: success")
         
     def run(self):
         """
@@ -24,16 +32,15 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
-
-        
-        
-        while True:
+        while self.shutdown == False:
             client_sock = self.__accept_new_connection()
 
             # Almaceno el socket del cliente
             self._client_skts.append(client_sock)
 
             self.__handle_client_connection(client_sock)
+
+
 
     def __handle_client_connection(self, client_sock):
         """
@@ -70,7 +77,7 @@ class Server:
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
 
-    def handle_sigterm_signal(self, signum, frame):
+    def clean_resourses(self):
         logging.info('Received SIGTERM signal')
 
         for client_sock in self._client_skts:
