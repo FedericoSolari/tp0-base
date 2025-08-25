@@ -53,6 +53,52 @@
 		return nil
 	}
 
+
+	func (c *Client) sendall(data []byte) error {
+		if c.conn == nil {
+			return fmt.Errorf("No hay una conexion abierta")
+		}
+
+		total := len(data)
+		sent := 0
+
+		for sent < total {
+			n, err := c.conn.Write(data[sent:])
+			if err != nil {
+				return err
+			}
+			sent += n
+		}
+
+		return nil
+	}
+
+	func (c *Client) recvAll(delim byte) (string, error) {
+		if c.conn == nil {
+			return "", fmt.Errorf("No hay una conexion abierta")
+		}
+
+		buffer := make([]byte, 0, 1024) 
+		tmp := make([]byte, 256)
+		found := false
+
+		for !found {
+			n, err := c.conn.Read(tmp)
+			if err != nil {
+				return "", err // EOF o error
+			}
+
+			buffer = append(buffer, tmp[:n]...)
+
+			// verifico si ya lei el '\n'
+			if bytes.Contains(tmp[:n], []byte{'\n'}) {
+				found = true
+			}
+		}
+
+		return string(buffer), nil
+	}
+
 	// StartClientLoop Send messages to the client until some time threshold is met
 	func (c *Client) StartClientLoop() {
 		sigs := make(chan os.Signal, 1)
@@ -64,40 +110,44 @@
 			os.Exit(0)
 		}()
 
-		// There is an autoincremental msgID to identify every message sent
-		// Messages if the message amount threshold has not been surpassed
-		for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-			// Create the connection the server in every loop iteration. Send an
-			c.createClientSocket()
-
-			// TODO: Modify the send to avoid short-write
-			fmt.Fprintf(
-				c.conn,
-				"[CLIENT %v] Message N°%v\n",
-				c.config.ID,
-				msgID,
-			)
-			msg, err := bufio.NewReader(c.conn).ReadString('\n')
-			c.conn.Close()
-
-			if err != nil {
-				log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-					c.config.ID,
-					err,
-				)
-				return
-			}
-
-			log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-				c.config.ID,
-				msg,
-			)
-
-			// Wait a time between sending one message and the next one
-			time.Sleep(c.config.LoopPeriod)
-
+		bet, err := NewBet()
+		if err != nil {
+			log.Errorf("action: create_bet | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
 		}
-		log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+
+		err = c.createClientSocket()
+		if err != nil {
+			log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
+		}
+		defer c.conn.Close() // Al salir de la func cierro el skt
+
+		msg := bet.FormatMessage()
+
+		err = c.sendAll([]byte(msg))
+		if err != nil {
+			log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
+		}
+
+		response, err := c.recvAll()
+		if err != nil {
+			log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
+		}
+
+		if bet.IsExpectedResponse(response) {
+			log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
+			bet.Document, bet.Number)
+		} else {
+			log.Warnf("action: check_response | result: rejected | client_id: %v | response: %s",
+				c.config.ID, response)
+		}
 	}
 
 
