@@ -2,6 +2,7 @@ import socket
 import logging
 import signal
 import sys
+import time
 
 
 
@@ -36,9 +37,11 @@ class Server:
         """
         while self.shutdown == False:
             try:
+                logging.info(f'Server: action: connecting')
                 client_sock = self.__accept_new_connection()
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
+                logging.info(f'Server: action: Socket_timeOut | reintentando')
                 continue
             # Almaceno el socket del cliente
             self._client_skts.append(client_sock)
@@ -55,13 +58,14 @@ class Server:
         client socket will also be closed
         """
         try:
+            time.sleep(0.5)
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock).rstrip().decode('utf-8')
             # addr = client_sock.getpeername()
 
             bet_data = parse_bet_message(msg)
             if bet_data:
-                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
+                logging.info(f'Server: action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
                 # store_bet(
                 #     bet_data["first_name"],
                 #     bet_data["last_name"],
@@ -80,16 +84,20 @@ class Server:
 
     def recv_all(self, client_sock):
 
+        logging.info(f'Server: action: inicio recv_all')
         buffer = bytearray()
         found = False
         while found == False:
+            logging.info(f'Server: action: leyendo mensaje')
             chunk = client_sock.recv(256)
             if not chunk:
+                logging.error(f'action: Error en la lectura del mensaje')
                 break
             buffer.extend(chunk)
             
             # busco el \n que significa el fin segun el protoolo definido
             if b'\n' in chunk:
+                logging.info(f'Server: action: mensaje leido')
                 found = True
             
         return bytes(buffer)
@@ -100,17 +108,19 @@ class Server:
         Se asegura que todo se envíe, evitando short-write.
         data debe contener el '\n' al final para indicar fin de mensaje.
         """
+        logging.info(f'Server: action: comienza send_all')
         total_sent = 0
         total_len = len(data)
 
         while total_sent < total_len:
+            logging.info(f'Server: action: enviando mensaje')
             try:
                 sent = skt.send(data[total_sent:])
                 if sent == 0:
                     raise RuntimeError("socket connection broken")
                 total_sent += sent
             except OSError as e:
-                logging.error(f"action: send_all | result: fail | error: {e}")
+                logging.error(f"Server: action: send_all | result: fail | error: {e}")
                 raise
 
     def __accept_new_connection(self):
@@ -122,22 +132,22 @@ class Server:
         """
 
         # Connection arrived
-        logging.info('action: accept_connections | result: in_progress')
+        logging.info('Server: action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
-        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+        logging.info(f'Server: action: accept_connections | result: success | ip: {addr[0]}')
         return c
 
     def clean_resourses(self):
-        logging.info('Received SIGTERM signal')
+        logging.info('Server: Received SIGTERM signal')
 
         for client_sock in self._client_skts:
-            logging.info('Closing client connection')
+            logging.info('Server: Closing client connection')
             client_sock.close()
         
         self._server_socket.close()
-        logging.info('Server connection closed')
+        logging.info('Server: Server connection closed')
         
-        logging.info('Resources closed successfully')
+        logging.info('Server: Resources closed successfully')
         sys.exit(0)
 
 
@@ -163,5 +173,5 @@ class Server:
                 "number": number
             }
         except Exception as e:
-            logging.error(f"action: parse_bet | result: fail | error: {e}")
+            logging.error(f"Server: action: parse_bet | result: fail | error: {e}")
             return None
