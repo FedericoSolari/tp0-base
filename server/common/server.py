@@ -3,6 +3,7 @@ import logging
 import signal
 import sys
 from common import utils
+from common import protocol
 import datetime
 
 
@@ -57,16 +58,10 @@ class Server:
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock).rstrip().decode('utf-8')
 
-            bet_data = self.parse_bet_message(msg)
-            if bet_data:
-                bet = utils.Bet("1",  bet_data["first_name"],  bet_data["last_name"],  
-                bet_data["document"],  bet_data["birthdate"],  bet_data["number"])
-                
-                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
-
+            bet = protocol.parse_bet_message(msg)
+            if bet:
                 utils.store_bets([bet])
-
-
+                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
                 client_sock.sendall(b"OK\n")
 
         except OSError as e:
@@ -78,11 +73,9 @@ class Server:
 
     def recv_all(self, client_sock):
 
-        # print('action: inicio recv_all', flush=True)
         buffer = bytearray()
         found = False
         while found == False:
-            # print(f'action: leyendo mensaje', flush=True)
             chunk = client_sock.recv(256)
             if not chunk:
                 logging.error(f'action: Error en la lectura del mensaje')
@@ -91,7 +84,6 @@ class Server:
             
             # busco el \n que significa el fin segun el protoolo definido
             if b'\n' in chunk:
-                # print(f'action: mensaje leido', flush=True)
                 found = True
             
         return bytes(buffer)
@@ -141,30 +133,3 @@ class Server:
         
         logging.info('Resources closed successfully')
         sys.exit(0)
-
-
-    def parse_bet_message(self, message: str):
-        """
-        Recibe un mensaje de apuesta separado por comas:
-        "FirstName,LastName,DNI,Birthdate,Number"
-        y devuelve un diccionario con los campos.
-        """
-        try:
-            parts = message.strip().split(',')
-            if len(parts) != 5:
-                raise ValueError("Mensaje con cantidad de campos incorrecta")
-
-            first_name, last_name, document, birthdate_str, number_str = parts
-            birthdate = datetime.datetime.strptime(birthdate_str, "%d/%m/%Y").date()
-            number = int(number_str) 
-
-            return {
-                "first_name": first_name,
-                "last_name": last_name,
-                "document": document,
-                "birthdate": birthdate.isoformat(),
-                "number": number
-            }
-        except Exception as e:
-            logging.error(f"action: parse_bet | result: fail | error: {e}")
-            return None
