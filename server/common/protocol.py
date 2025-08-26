@@ -10,8 +10,9 @@ def parse_bet_message(bytes_msg: bytes):
         if len(parts) != 5:
             raise ValueError("Mensaje invalido")
         
-        agency,first_name, last_name, document, birthdate_str, number_str = parts
+        agency_str,first_name, last_name, document, birthdate_str, number_str = parts
 
+        agency = int(agency_str) 
         birthdate = datetime.datetime.strptime(birthdate_str, "%d/%m/%Y").date()
         number = int(number_str) 
 
