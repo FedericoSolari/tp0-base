@@ -13,7 +13,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         # Agrego time out para que no se qude esperando por siempre una conxion
-        self._server_socket.settimeout(15.0)
+        self._server_socket.settimeout(5.0)
         self._client_skts = []
         self.shutdown = False
 
@@ -37,12 +37,12 @@ class Server:
         while self.shutdown == False:
             try:
                 # logging.info(f'action: connecting')
-                print("DEBUG: antes de TO", flush=True)
+                # print("DEBUG: antes de TO", flush=True)
                 # time.sleep(0.5)
                 client_sock = self.__accept_new_connection()
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
-                print(f'action: Socket_timeOut | reintentando', flush=True)
+                # print(f'action: Socket_timeOut | reintentando', flush=True)
                 continue
             # Almaceno el socket del cliente
             self._client_skts.append(client_sock)
@@ -59,12 +59,12 @@ class Server:
         client socket will also be closed
         """
         try:
-            # time.sleep(0.5)
+            time.sleep(0.5)
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock).rstrip().decode('utf-8')
             # addr = client_sock.getpeername()
 
-            bet_data = parse_bet_message(msg)
+            bet_data = self.parse_bet_message(msg)
             if bet_data:
                 logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
                 # store_bet(
@@ -74,10 +74,9 @@ class Server:
                 #     bet_data["birthdate"],
                 #     bet_data["number"]
                 # )
-
-            client_sock.send(b"OK\n")
+                client_sock.send(b"OK\n")
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error("action: es del server receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
         # Elimino el socket almacenado
@@ -85,12 +84,11 @@ class Server:
 
     def recv_all(self, client_sock):
 
-        print('action: inicio recv_all', flush=True)
+        # print('action: inicio recv_all', flush=True)
         buffer = bytearray()
         found = False
-        print('action: inicio recv_all', flush=True)
         while found == False:
-            print(f'action: leyendo mensaje', flush=True)
+            # print(f'action: leyendo mensaje', flush=True)
             chunk = client_sock.recv(256)
             if not chunk:
                 logging.error(f'action: Error en la lectura del mensaje')
@@ -99,7 +97,7 @@ class Server:
             
             # busco el \n que significa el fin segun el protoolo definido
             if b'\n' in chunk:
-                print(f'action: mensaje leido', flush=True)
+                # print(f'action: mensaje leido', flush=True)
                 found = True
             
         return bytes(buffer)
@@ -110,12 +108,12 @@ class Server:
         Se asegura que todo se envíe, evitando short-write.
         data debe contener el '\n' al final para indicar fin de mensaje.
         """
-        print(f'action: comienza send_all', flush=True)
+        # print(f'action: comienza send_all', flush=True)
         total_sent = 0
         total_len = len(data)
 
         while total_sent < total_len:
-            print(f'action: enviando mensaje', flush=True)
+            # print(f'action: enviando mensaje', flush=True)
             try:
                 sent = skt.send(data[total_sent:])
                 if sent == 0:
@@ -130,9 +128,9 @@ class Server:
         Accept new connections
 
         Function blocks until a connection to a client is made.
-        Then connection created is printed and returned
+        # Then connection created is printed and returned
         """
-        print("DEBUG: antes de accept()", flush=True)
+        # print("DEBUG: antes de accept()", flush=True)
 
         # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
@@ -154,7 +152,7 @@ class Server:
         sys.exit(0)
 
 
-    def parse_bet_message(message: str):
+    def parse_bet_message(self, message: str):
         """
         Recibe un mensaje de apuesta separado por comas:
         "FirstName,LastName,DNI,Birthdate,Number"
@@ -162,6 +160,7 @@ class Server:
         """
         try:
             parts = message.strip().split(',')
+            logging.info(f"action: parse_bet | campos recibidos: {parts}")
             if len(parts) != 5:
                 raise ValueError("Mensaje con cantidad de campos incorrecta")
 

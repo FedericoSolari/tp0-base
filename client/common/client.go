@@ -55,6 +55,7 @@
 
 
 	func (c *Client) sendall(data []byte) error {
+		// log.Println("Inicio sendall")
 		if c.conn == nil {
 			return fmt.Errorf("No hay una conexion abierta")
 		}
@@ -63,17 +64,21 @@
 		sent := 0
 
 		for sent < total {
+			// log.Println("enviando mensaje")
 			n, err := c.conn.Write(data[sent:])
 			if err != nil {
 				return err
 			}
+			log.Printf("enviado %d bytes: %q\n", n, data[sent:sent+n])
 			sent += n
 		}
+		// log.Println("mensaje enviado")
 
 		return nil
 	}
 
 	func (c *Client) recvAll(delim byte) (string, error) {
+		// log.Println("inicio recv all")
 		if c.conn == nil {
 			return "", fmt.Errorf("No hay una conexion abierta")
 		}
@@ -81,14 +86,18 @@
 		buffer := make([]byte, 0, 1024) 
 		tmp := make([]byte, 256)
 		found := false
+		// log.Println("variables seteadas")
 
 		for !found {
-			n, err := c.conn.Read(tmp)
+			// 
+			n, err :=leyendo c.conn.Read(tmp)
 			if err != nil {
-				return "", err // EOF o error
+				return "",
+				// log.Println("NO LEI NADA") err // EOF o error
 			}
 
-			buffer = append(buffer, tmp[:n]...)
+			buffer = ap
+			log.Printf("leídos %d bytes: %q\n", n, tmp[:n])pend(buffer, tmp[:n]...)
 
 			// verifico si ya lei el '\n'
 			if bytes.Contains(tmp[:n], []byte{'\n'}) {
