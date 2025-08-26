@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -15,17 +16,16 @@ type Bet struct {
 }
 
 func NewBet() (*Bet, error) {
-	firstName := "fede"
-	lastName := "solari"
-	document := "42819254"
-	birth := "22/11/2000" // formato string
-	numberStr := "1234"
-	// Descomentar para leer desde variables de entorno:
-	// firstName := os.Getenv("NOMBRE")
-	// lastName := os.Getenv("APELLIDO")
-	// document := os.Getenv("DOCUMENTO")
-	// birth := os.Getenv("NACIMIENTO")
-	// numberStr := os.Getenv("NUMERO")
+	// firstName := "fede"
+	// lastName := "solari"
+	// document := "42819254"
+	// birth := "22/11/2000" // formato string
+	// numberStr := "1234"
+	firstName := os.Getenv("NOMBRE")
+	lastName := os.Getenv("APELLIDO")
+	document := os.Getenv("DOCUMENTO")
+	birth := os.Getenv("NACIMIENTO")
+	numberStr := os.Getenv("NUMERO")
 
 	number, err := strconv.Atoi(numberStr)
 	if err != nil {
@@ -39,15 +39,4 @@ func NewBet() (*Bet, error) {
 		Birthdate: birth,
 		Number:    number,
 	}, nil
-}
-
-func (b *Bet) FormatMessage() string {
-	return fmt.Sprintf(
-		"%s,%s,%s,%s,%d\n",
-		b.FirstName,
-		b.LastName,
-		b.Document,
-		b.Birthdate,
-		b.Number,
-	)
 }
