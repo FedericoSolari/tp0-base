@@ -59,7 +59,7 @@ class Server:
         client socket will also be closed
         """
         try:
-            time.sleep(0.5)
+            # time.sleep(0.5)
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock).rstrip().decode('utf-8')
             # addr = client_sock.getpeername()

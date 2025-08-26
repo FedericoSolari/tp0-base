@@ -56,7 +56,7 @@ func (c *Client) createClientSocket() error {
 func (c *Client) sendall(data []byte) error {
 	// log.Println("Inicio sendall")
 	if c.conn == nil {
-		return fmt.Errorf("No hay una conexion abierta")
+		return fmt.Errorf("no hay una conexion abierta")
 	}
 
 	total := len(data)
@@ -79,7 +79,7 @@ func (c *Client) sendall(data []byte) error {
 func (c *Client) recvAll() (string, error) {
 	// log.Println("inicio recv all")
 	if c.conn == nil {
-		return "", fmt.Errorf("No hay una conexion abierta")
+		return "", fmt.Errorf("no hay una conexion abierta")
 	}
 
 	buffer := make([]byte, 0, 1024)
