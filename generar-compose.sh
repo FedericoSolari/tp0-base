@@ -55,7 +55,7 @@ function configurate_client() {
         write_line "      - NOMBRE=Nombre$i"
         write_line "      - APELLIDO=Apellido$i"
         write_line "      - DOCUMENTO=4000000$i"
-        write_line "      - NACIMIENTO=1990-01-0$i"
+        write_line "      - NACIMIENTO=22/10/2000$i"
         write_line "      - NUMERO=75$i"
         write_line "    networks:"
         write_line "      - testing_net"
