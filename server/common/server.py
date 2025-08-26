@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 import sys
-import time
+import utils
 
 
 
@@ -36,18 +36,13 @@ class Server:
         """
         while self.shutdown == False:
             try:
-                # logging.info(f'action: connecting')
-                # print("DEBUG: antes de TO", flush=True)
-                # time.sleep(0.5)
                 client_sock = self.__accept_new_connection()
+                # Almaceno el socket del cliente
+                self._client_skts.append(client_sock)
+                self.__handle_client_connection(client_sock)
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
-                # print(f'action: Socket_timeOut | reintentando', flush=True)
                 continue
-            # Almaceno el socket del cliente
-            self._client_skts.append(client_sock)
-
-            self.__handle_client_connection(client_sock)
 
 
 
@@ -59,24 +54,19 @@ class Server:
         client socket will also be closed
         """
         try:
-            # time.sleep(0.5)
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock).rstrip().decode('utf-8')
-            # addr = client_sock.getpeername()
 
             bet_data = self.parse_bet_message(msg)
             if bet_data:
+                bet = utils.Bet("1",  bet_data["first_name"],  bet_data["last_name"],  
+                bet_data["document"],  bet_data["birthdate"],  bet_data["number"])
+                
+                utils.store_bets([bet])
+
                 logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
-                # store_bet(
-                #     bet_data["first_name"],
-                #     bet_data["last_name"],
-                #     bet_data["document"],
-                #     bet_data["birthdate"],
-                #     bet_data["number"]
-                # )
+
                 client_sock.send(b"OK\n")
-            else :
-                logging.info(f'Entro al else')
 
         except OSError as e:
             logging.error("action: es del server receive_message | result: fail | error: {e}")
@@ -111,12 +101,10 @@ class Server:
         Se asegura que todo se envíe, evitando short-write.
         data debe contener el '\n' al final para indicar fin de mensaje.
         """
-        # print(f'action: comienza send_all', flush=True)
         total_sent = 0
         total_len = len(data)
 
         while total_sent < total_len:
-            # print(f'action: enviando mensaje', flush=True)
             try:
                 sent = skt.send(data[total_sent:])
                 if sent == 0:
@@ -133,7 +121,6 @@ class Server:
         Function blocks until a connection to a client is made.
         # Then connection created is printed and returned
         """
-        # print("DEBUG: antes de accept()", flush=True)
 
         # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
@@ -163,14 +150,12 @@ class Server:
         """
         try:
             parts = message.strip().split(',')
-            # logging.info(f"action: parse_bet | campos recibidos: {parts}")
             if len(parts) != 5:
                 raise ValueError("Mensaje con cantidad de campos incorrecta")
 
             first_name, last_name, document, birthdate, number_str = parts
             number = int(number_str)  # convertir el número a entero
 
-            # logging.info(f"action: parse_bet | first_name:{first_name}, last_name:{last_name}, document:{document}, birthdate:{birthdate}, number_str:{number_str}")
             return {
                 "first_name": first_name,
                 "last_name": last_name,
