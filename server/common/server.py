@@ -61,14 +61,13 @@ class Server:
             if bet_data:
                 bet = utils.Bet("1",  bet_data["first_name"],  bet_data["last_name"],  
                 bet_data["document"],  bet_data["birthdate"],  bet_data["number"])
-                # bet = utils.Bet("1", "fede", "solari", "123", "2020-10-22", "1234")
                 
                 logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
 
                 utils.store_bets([bet])
 
 
-                client_sock.send(b"OK\n")
+                client_sock.sendall(b"OK\n")
 
         except OSError as e:
             logging.error("action: es del server receive_message | result: fail | error: {e}")
