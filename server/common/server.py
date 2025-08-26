@@ -170,6 +170,7 @@ class Server:
             first_name, last_name, document, birthdate, number_str = parts
             number = int(number_str)  # convertir el número a entero
 
+            logging.info(f"action: parse_bet | first_name:{first_name}, last_name:{last_name}, document:{document}, birthdate:{birthdate}, number_str:{number_str}")
             return {
                 "first_name": first_name,
                 "last_name": last_name,
