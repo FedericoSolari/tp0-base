@@ -2,9 +2,11 @@ import logging
 from common import utils
 import datetime
 
-def parse_bet_message(msg: str):
+def parse_bet_message(bytes_msg: bytes):
     try:
+        msg = bytes_msg.rstrip().decode('utf-8')
         parts = msg.strip().split(",")
+        
         if len(parts) != 5:
             raise ValueError("Mensaje invalido")
         

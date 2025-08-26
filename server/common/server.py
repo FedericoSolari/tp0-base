@@ -56,7 +56,7 @@ class Server:
         """
         try:
             # recibo todo y decodifico el mensaje
-            msg = self.recv_all(client_sock).rstrip().decode('utf-8')
+            msg = self.recv_all(client_sock)
 
             bet = protocol.parse_bet_message(msg)
             if bet:
