@@ -59,7 +59,7 @@ class Server:
 
             bet_data = self.parse_bet_message(msg)
             if bet_data:
-                bet = utils.Bet(1,  bet_data["first_name"],  bet_data["last_name"],  
+                bet = utils.Bet("1",  bet_data["first_name"],  bet_data["last_name"],  
                 bet_data["document"],  bet_data["birthdate"],  bet_data["number"])
                 
                 logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
@@ -154,15 +154,15 @@ class Server:
             if len(parts) != 5:
                 raise ValueError("Mensaje con cantidad de campos incorrecta")
 
-            first_name, last_name, document, birthdate, number_str = parts
-            number = int(number_str)  # convertir el número a entero
+            first_name, last_name, document, birthdate, numbers = parts
+            # number = int(number_str)  # convertir el número a entero
 
             return {
                 "first_name": first_name,
                 "last_name": last_name,
                 "document": document,
                 "birthdate": birthdate,
-                "number": number
+                "number": numbers
             }
         except Exception as e:
             logging.error(f"action: parse_bet | result: fail | error: {e}")
