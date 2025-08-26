@@ -3,7 +3,7 @@ import logging
 import signal
 import sys
 from common import utils
-
+import datetime
 
 
 class Server:
@@ -155,15 +155,15 @@ class Server:
             if len(parts) != 5:
                 raise ValueError("Mensaje con cantidad de campos incorrecta")
 
-            first_name, last_name, document, birthdate, number_str = parts
-            # birthdate = datetime.date.fromisoformat(birthdate_str)
+            first_name, last_name, document, birthdate_str, number_str = parts
+            birthdate = datetime.datetime.strptime(birthdate_str, "%d/%m/%Y").date()
             number = int(number_str) 
 
             return {
                 "first_name": first_name,
                 "last_name": last_name,
                 "document": document,
-                "birthdate": birthdate,
+                "birthdate": birthdate.isoformat(),
                 "number": number
             }
         except Exception as e:
