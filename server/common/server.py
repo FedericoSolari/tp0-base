@@ -163,14 +163,14 @@ class Server:
         """
         try:
             parts = message.strip().split(',')
-            logging.info(f"action: parse_bet | campos recibidos: {parts}")
+            # logging.info(f"action: parse_bet | campos recibidos: {parts}")
             if len(parts) != 5:
                 raise ValueError("Mensaje con cantidad de campos incorrecta")
 
             first_name, last_name, document, birthdate, number_str = parts
             number = int(number_str)  # convertir el número a entero
 
-            logging.info(f"action: parse_bet | first_name:{first_name}, last_name:{last_name}, document:{document}, birthdate:{birthdate}, number_str:{number_str}")
+            # logging.info(f"action: parse_bet | first_name:{first_name}, last_name:{last_name}, document:{document}, birthdate:{birthdate}, number_str:{number_str}")
             return {
                 "first_name": first_name,
                 "last_name": last_name,
