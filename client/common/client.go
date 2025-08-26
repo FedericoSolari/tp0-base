@@ -54,7 +54,6 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) sendall(data []byte) error {
-	// log.Println("Inicio sendall")
 	if c.conn == nil {
 		return fmt.Errorf("no hay una conexion abierta")
 	}
@@ -63,21 +62,17 @@ func (c *Client) sendall(data []byte) error {
 	sent := 0
 
 	for sent < total {
-		// log.Println("enviando mensaje")
 		n, err := c.conn.Write(data[sent:])
 		if err != nil {
 			return err
 		}
-		//log.Printf("enviado %d bytes: %q\n", n, data[sent:sent+n])
 		sent += n
 	}
-	// log.Println("mensaje enviado")
 
 	return nil
 }
 
-func (c *Client) recvAll() (string, error) {
-	// log.Println("inicio recv all")
+func (c *Client) recvall() (string, error) {
 	if c.conn == nil {
 		return "", fmt.Errorf("no hay una conexion abierta")
 	}
@@ -85,8 +80,6 @@ func (c *Client) recvAll() (string, error) {
 	buffer := make([]byte, 0, 1024)
 	tmp := make([]byte, 256)
 	found := false
-	// log.Println("variables seteadas")
-
 	for !found {
 		//
 		n, err := c.conn.Read(tmp)
@@ -131,7 +124,7 @@ func (c *Client) StartClientLoop() {
 	}
 	defer c.conn.Close() // Al salir de la func cierro el skt
 
-	msg := bet.FormatMessage()
+	msg := FormatBetMessage(bet)
 
 	err = c.sendall([]byte(msg))
 	if err != nil {
@@ -140,14 +133,14 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	response, err := c.recvAll()
+	response, err := c.recvall()
 	if err != nil {
 		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return
 	}
 
-	if bet.IsExpectedResponse(response) {
+	if IsSuccessResponse(response) {
 		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
 			bet.Document, bet.Number)
 	}

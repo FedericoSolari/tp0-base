@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 // Bet representa una apuesta de usuario
@@ -22,7 +21,7 @@ func NewBet() (*Bet, error) {
 	birth := "22/11/2000" // formato string
 	numberStr := "1234"
 	// Descomentar para leer desde variables de entorno:
-	// firstName := os.Getenv("NOMBRE")     
+	// firstName := os.Getenv("NOMBRE")
 	// lastName := os.Getenv("APELLIDO")
 	// document := os.Getenv("DOCUMENTO")
 	// birth := os.Getenv("NACIMIENTO")
@@ -51,8 +50,4 @@ func (b *Bet) FormatMessage() string {
 		b.Birthdate,
 		b.Number,
 	)
-}
-
-func (b *Bet) IsExpectedResponse(response string) bool {
-	return strings.TrimSpace(response) == "OK"
 }
