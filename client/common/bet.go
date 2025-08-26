@@ -8,6 +8,7 @@ import (
 
 // Bet representa una apuesta de usuario
 type Bet struct {
+	Agency    string
 	FirstName string
 	LastName  string
 	Document  string
@@ -16,11 +17,7 @@ type Bet struct {
 }
 
 func NewBet() (*Bet, error) {
-	// firstName := "fede"
-	// lastName := "solari"
-	// document := "42819254"
-	// birth := "22/11/2000" // formato string
-	// numberStr := "1234"
+	agency := os.Getenv("CLI_ID")
 	firstName := os.Getenv("NOMBRE")
 	lastName := os.Getenv("APELLIDO")
 	document := os.Getenv("DOCUMENTO")
@@ -33,6 +30,7 @@ func NewBet() (*Bet, error) {
 	}
 
 	return &Bet{
+		Agency:    agency,
 		FirstName: firstName,
 		LastName:  lastName,
 		Document:  document,
