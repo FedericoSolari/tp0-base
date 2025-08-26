@@ -92,12 +92,9 @@ func (c *Client) recvAll() (string, error) {
 		n, err := c.conn.Read(tmp)
 		if err != nil {
 			return "", err
-			// log.Println("NO LEI NADA") err // EOF o error
 		}
 
 		buffer = append(buffer, tmp[:n]...)
-
-		//log.Println("leídos %d bytes: %q\n", n, tmp[:n])
 
 		// verifico si ya lei el '\n'
 		if bytes.Contains(tmp[:n], []byte{'\n'}) {
@@ -154,10 +151,7 @@ func (c *Client) StartClientLoop() {
 		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
 			bet.Document, bet.Number)
 	}
-	//else {
-	//log.Warnf("action: check_response | result: rejected | client_id: %v | response: %s",
-	//	c.config.ID, response)
-	//}
+
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {

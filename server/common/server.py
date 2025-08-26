@@ -62,9 +62,10 @@ class Server:
                 bet = utils.Bet("1",  bet_data["first_name"],  bet_data["last_name"],  
                 bet_data["document"],  bet_data["birthdate"],  bet_data["number"])
                 
+                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
+                
                 utils.store_bets([bet])
 
-                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet_data["document"]} | numero: {bet_data["number"]}')
 
                 client_sock.send(b"OK\n")
 
