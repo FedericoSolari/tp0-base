@@ -7,7 +7,7 @@ def parse_bet_message(bytes_msg: bytes):
         msg = bytes_msg.rstrip().decode('utf-8')
         parts = msg.strip().split(",")
 
-        if len(parts) != 5:
+        if len(parts) != 6:
             raise ValueError("Mensaje invalido")
         
         agency_str,first_name, last_name, document, birthdate_str, number_str = parts
