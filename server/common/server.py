@@ -60,12 +60,16 @@ class Server:
 
             bet = protocol.parse_bet_message(msg)
             if bet:
-                utils.store_bets([bet])
-                logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-                client_sock.sendall(b"OK\n")
+                try:
+                    utils.store_bets([bet])
+                    logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
+                    client_sock.sendall(protocol.success_message())
+                except Exception as e:
+                    logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
+                    
 
         except OSError as e:
-            logging.error("action: es del server receive_message | result: fail | error: {e}")
+            logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
             client_sock.close()
         # Elimino el socket almacenado

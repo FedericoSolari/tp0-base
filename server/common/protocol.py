@@ -6,7 +6,7 @@ def parse_bet_message(bytes_msg: bytes):
     try:
         msg = bytes_msg.rstrip().decode('utf-8')
         parts = msg.strip().split(",")
-        
+
         if len(parts) != 5:
             raise ValueError("Mensaje invalido")
         
@@ -21,8 +21,5 @@ def parse_bet_message(bytes_msg: bytes):
         logging.error("action: parse_bet | result: fail | error: %s", e)
         return None
 
-def format_response(ok: bool, msg: str = "") -> bytes:
-    if ok:
-        return f"OK|{msg}\n".encode()
-    else:
-        return f"ERROR|{msg}\n".encode()
+def success_message() -> bytes:
+    return b"OK\n"
