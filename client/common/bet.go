@@ -11,7 +11,7 @@ type Bet struct {
 	FirstName string
 	LastName  string
 	Document  string
-	Birthdate string // ahora es string
+	Birthdate string
 	Number    int
 }
 
