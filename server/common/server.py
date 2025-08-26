@@ -75,6 +75,9 @@ class Server:
                 #     bet_data["number"]
                 # )
                 client_sock.send(b"OK\n")
+            else :
+                logging.info(f'Entro al else')
+
         except OSError as e:
             logging.error("action: es del server receive_message | result: fail | error: {e}")
         finally:
