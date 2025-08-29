@@ -109,14 +109,7 @@ func (c *Client) StartClientLoop() {
 		os.Exit(0)
 	}()
 
-	bet, err := NewBet()
-	if err != nil {
-		log.Errorf("action: create_bet | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
-		return
-	}
-
-	err = c.createClientSocket()
+	err := c.createClientSocket()
 	if err != nil {
 		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
@@ -124,25 +117,34 @@ func (c *Client) StartClientLoop() {
 	}
 	defer c.conn.Close() // Al salir de la func cierro el skt
 
-	msg := FormatBetMessage(bet)
-
-	err = c.sendall([]byte(msg))
+	bets, err := NewBet().LoadBets("/data/agency.csv")
 	if err != nil {
-		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+		log.Errorf("action: load_bets | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return
 	}
 
-	response, err := c.recvall()
-	if err != nil {
-		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
-		return
-	}
+	for _, bet := range bets {
+		msg := FormatBetMessage(bet)
 
-	if IsSuccessResponse(response) {
-		log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
-			bet.Document, bet.Number)
+		err = c.sendall([]byte(msg))
+		if err != nil {
+			log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
+		}
+
+		response, err := c.recvall()
+		if err != nil {
+			log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
+		}
+
+		if IsSuccessResponse(response) {
+			log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
+				bet.Document, bet.Number)
+		}
 	}
 
 }
