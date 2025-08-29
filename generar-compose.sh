@@ -61,6 +61,7 @@ function configurate_client() {
         write_line "      - testing_net"
         write_line "    volumes:"
         write_line "      - ./client/config.yaml:/config.yaml"
+        write_line "      - ./.data/agency-$i.csv:/data/agency.csv"
         write_line "    depends_on:"
         write_line "      - server"
     done
