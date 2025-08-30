@@ -35,11 +35,12 @@ func validateField(value string, fieldName string) (int, error) {
 	if value == "" {
 		return 0, nil
 	}
-	agency, err := strconv.Atoi(value)
+	fieldvalue, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, fmt.Errorf("valor invalido en %s: %v", fieldName, err)
+		fmt.Printf("valor invalido en %s: %v", fieldName, err)
+		fieldvalue = 0
 	}
-	return agency, nil
+	return fieldvalue, nil
 }
 
 func (bl *BetLoader) flushPendingBet(bets []*Bet, currentBatchSize *int) []*Bet {
@@ -82,13 +83,7 @@ func (bl *BetLoader) NextBatch() ([]*Bet, error) {
 		}
 
 		agency, err := validateField(data[0], "agency")
-		if err != nil {
-			return nil, err
-		}
 		num, err := validateField(data[0], "num")
-		if err != nil {
-			return nil, err
-		}
 
 		bet := NewBet(agency, data[1], data[2], data[3], data[4], num)
 
