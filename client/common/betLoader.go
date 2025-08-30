@@ -79,11 +79,11 @@ func (bl *BetLoader) NextBatch() ([]*Bet, error) {
 		}
 
 		// Si la fila tiene menos datos, los completo con vacio
-		for len(data) < 6 {
+		for len(data) < 5 {
 			data = append(data, "")
 		}
 
-		num := validateField(data[0], "num")
+		num := validateField(data[5], "num")
 
 		bet := NewBet(agency, data[1], data[2], data[3], data[4], num)
 
