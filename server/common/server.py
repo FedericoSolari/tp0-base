@@ -64,7 +64,7 @@ class Server:
             for bet in bets:
                 try:
                     utils.store_bets([bet])
-                    logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
+                    # logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
                 except Exception:
                     batch_ok = False
                     # fails_bets +=1
