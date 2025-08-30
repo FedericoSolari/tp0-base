@@ -63,7 +63,7 @@ func (c *Client) sendall(data []byte) error {
 	total := len(data)
 	sent := 0
 
-	fmt.Printf(">>> Enviando (%d bytes): %q\n", len(data), data)
+	// fmt.Printf(">>> Enviando (%d bytes): %q\n", len(data), data)
 
 	for sent < total {
 		n, err := c.conn.Write(data[sent:])
@@ -103,7 +103,7 @@ func (c *Client) recvall() (string, error) {
 }
 
 func (c *Client) SendStart() error {
-	log.Info("Envio start")
+	log.Infof("START")
 	err := c.sendall([]byte(startMessage()))
 	if err != nil {
 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
@@ -114,7 +114,7 @@ func (c *Client) SendStart() error {
 }
 
 func (c *Client) SendFinish() error {
-	log.Info("Envio finish")
+	log.Infof("END")
 	err := c.sendall([]byte(AllBetsDone()))
 	if err != nil {
 		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
@@ -143,9 +143,11 @@ func (c *Client) ProcessBets(bets []*Bet) {
 	}
 
 	if IsSuccessResponse(response) {
-		log.Infof("action: batch_de_apuestas_enviado | result: success | cantidad: %d", len(bets))
+		// log.Infof("action: batch_de_apuestas_enviado | result: success | cantidad: %d", len(bets))
+		log.Infof("OK")
 	} else {
-		log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
+		// log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
+		log.Infof("FAIL")
 	}
 }
 

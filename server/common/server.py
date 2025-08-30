@@ -78,23 +78,25 @@ class Server:
         try:
             while True:
                 msg, leftover = self.recv_all(client_sock, leftover)
-                logging.info(f"Mensaje recibido crudo: {msg!r}")
+                # logging.info(f"msj: {msg!r}")
                 if not msg:
                     break
 
                 if protocol.isStartMessage(msg):
                     is_started = True
-                    logging.info("Inicio de recepcion de bets")
+                    # logging.info("Inicio de recepcion de bets")
+                    logging.info("START")
                 elif protocol.isAllBetsDoneMessage(msg):
                     is_started = False
-                    logging.info("Fin de recepcion de bets")
+                    logging.info("END")
+                    # logging.info("Fin de recepcion de bets")
                     break
                 else:
                     if is_started:
                         self.__handle_bets(client_sock, msg)
                     else:
-                        logging.info("Cerrandooo")
                         break
+                        # logging.info("Cerrandooo")
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
