@@ -197,7 +197,7 @@ func (c *Client) StartClientLoop() {
 	go func() {
 		<-sigs
 		c.handle_SIGTERM_signal(sigs)
-		os.Exit(0)
+		// os.Exit(0)
 	}()
 
 	err := c.createClientSocket()
@@ -206,7 +206,6 @@ func (c *Client) StartClientLoop() {
 			c.config.ID, err)
 		return
 	}
-	defer c.conn.Close() // Al salir de la func cierro el skt
 
 	c.SendStart()
 	c.ProcessAllBets()
