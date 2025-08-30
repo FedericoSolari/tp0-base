@@ -221,6 +221,7 @@ func (c *Client) StartClientLoop() {
 			log.Infof("Conexión cerrada correctamente")
 		}
 	}
+	return
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
