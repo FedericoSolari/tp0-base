@@ -100,6 +100,26 @@ func (c *Client) recvall() (string, error) {
 	return string(buffer), nil
 }
 
+func (c *Client) SendStart() error {
+	err := c.sendall([]byte(startMessage()))
+	if err != nil {
+		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return err
+	}
+	return nil
+}
+
+func (c *Client) SendFinish() error {
+	err := c.sendall([]byte(AllBetsDone()))
+	if err != nil {
+		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return err
+	}
+	return nil
+}
+
 func (c *Client) ProcessBets(bets []*Bet) {
 
 	msg := FormatBatchMessage(bets)
@@ -168,11 +188,11 @@ func (c *Client) StartClientLoop() {
 	}
 	defer c.conn.Close() // Al salir de la func cierro el skt
 
+	c.SendStart()
 	c.ProcessAllBets()
+	c.SendFinish()
 
 }
-
-// c.config.Batch.MaxAmount
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
 	if c.conn != nil {

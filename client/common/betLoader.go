@@ -102,7 +102,7 @@ func (bl *BetLoader) NextBatch() ([]*Bet, error) {
 
 func (bl *BetLoader) tryAddBet(bet *Bet, bets []*Bet, currentBatchSize *int) ([]*Bet, bool) {
 	betSize := len(FormatBetMessage(bet))
-	if *currentBatchSize+betSize+len(BetSeparator)+len(BatchEnd) > MaxBatchBytes {
+	if *currentBatchSize+betSize+len(BetSeparator)+len(EndDelimiter) > MaxBatchBytes {
 		// No entra en el batch actual, lo guardo para la proxima llamada
 		bl.pendingBet = bet
 		return bets, false

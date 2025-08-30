@@ -7,7 +7,7 @@ import (
 
 const (
 	BetSeparator = "|"
-	BatchEnd     = "\n"
+	EndDelimiter = "\n"
 )
 
 func FormatBetMessage(b *Bet) string {
@@ -23,10 +23,18 @@ func IsERRORResponse(response string) bool {
 	return strings.TrimSpace(response) == "ERROR"
 }
 
+func startMessage() string {
+	return "START" + EndDelimiter
+}
+
+func AllBetsDone() string {
+	return "END" + EndDelimiter
+}
+
 func FormatBatchMessage(bets []*Bet) string {
 	var msgs []string
 	for _, bet := range bets {
 		msgs = append(msgs, FormatBetMessage(bet))
 	}
-	return strings.Join(msgs, BetSeparator) + BatchEnd
+	return strings.Join(msgs, BetSeparator) + EndDelimiter
 }

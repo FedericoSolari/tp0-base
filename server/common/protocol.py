@@ -35,3 +35,9 @@ def success_message() -> bytes:
 
 def error_message() -> bytes:
     return b"ERROR\n"
+
+def startMessage() -> bytes:
+    return b"START\n"
+
+def AllBetsDone() -> bytes:
+    return b"END\n"

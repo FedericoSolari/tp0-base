@@ -46,7 +46,25 @@ class Server:
                 continue
 
 
+    def __handle_bets(self, client_sock, msg):
+        batch_ok = True
 
+        bets = protocol.parse_bet_message(msg)
+        for bet in bets:
+            try:
+                utils.store_bets([bet])
+            except Exception:
+                batch_ok = False
+                break
+                
+        if batch_ok:
+            logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+            client_sock.send_all(protocol.success_message())
+        else:
+            logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
+            client_sock.send_all(protocol.error_message())
+
+            
     def __handle_client_connection(self, client_sock):
         """
         Read message from a specific client socket and closes the socket
@@ -55,36 +73,23 @@ class Server:
         client socket will also be closed
         """
         try:
-            # recibo todo y decodifico el mensaje
-            msg = self.recv_all(client_sock)
-            batch_ok = True
-            # fails_bets = 0
-
-            bets = protocol.parse_bet_message(msg)
-            for bet in bets:
-                try:
-                    utils.store_bets([bet])
-                    # logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-                except Exception:
-                    batch_ok = False
-                    # fails_bets +=1
+            while True:
+                msg = self.recv_all(client_sock)
+                if not msg:
                     break
-                    
-            if batch_ok:
-                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                client_sock.send_all(protocol.success_message())
-            else:
-                # logging.info(f"action: apuesta_recibida | result: fail | cantidad: {fails_bets}")
-                logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-                client_sock.send_all(protocol.error_message())
+
+                if protocol.startMessage(msg):
+                    logging.info("Inicio de recepcion de bets")
+                elif protocol.AllBetsDone(msg):
+                    logging.info("Fin de recepcion de bets")
+                    break
+                else:
+                    self.__handle_bets(client_sock, msg)
+
 
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
-            try:
-                client_sock.shutdown(socket.SHUT_WR)
-            except OSError:
-                pass
             client_sock.close()
         # Elimino el socket almacenado
         self._client_skts.remove(client_sock)
