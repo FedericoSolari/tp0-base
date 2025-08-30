@@ -80,10 +80,10 @@ class Server:
                 if not msg:
                     break
 
-                if protocol.startMessage(msg):
+                if protocol.isStartMessage(msg):
                     is_started = True
                     logging.info("Inicio de recepcion de bets")
-                elif protocol.AllBetsDone(msg):
+                elif protocol.isAllBetsDoneMessage(msg):
                     is_started = False
                     logging.info("Fin de recepcion de bets")
                     break

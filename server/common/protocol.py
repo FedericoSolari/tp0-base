@@ -36,8 +36,8 @@ def success_message() -> bytes:
 def error_message() -> bytes:
     return b"ERROR\n"
 
-def startMessage() -> bytes:
-    return b"START\n"
+def isStartMessage(msg: str) -> bool:
+    return msg.strip() == "START"
 
-def AllBetsDone() -> bytes:
-    return b"END\n"
+def isAllBetsDoneMessage(msg: str) -> bool:
+    return msg.strip() == "END"
