@@ -19,7 +19,7 @@ def parse_bet_message(bytes_msg: bytes):
             agency_str, first_name, last_name, document, birthdate_str, number_str = parts
 
             agency = int(agency_str)
-            birthdate = datetime.datetime.strptime(birthdate_str, "%d/%m/%Y").date()
+            birthdate = datetime.datetime.strptime(birthdate_str, "%Y-%m-%d").date()
             number = int(number_str)
 
             bets.append(utils.Bet(agency, first_name, last_name, document, birthdate.isoformat(), number))
