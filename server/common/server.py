@@ -100,6 +100,7 @@ class Server:
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
+            logging.info("CIERRO EL SOCKET")
             client_sock.close()
         # Elimino el socket almacenado
         self._client_skts.remove(client_sock)
