@@ -59,10 +59,10 @@ class Server:
                 
         if batch_ok:
             logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-            client_sock.send_all(protocol.success_message())
+            self.send_all(client_sock, protocol.success_message())
         else:
             logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-            client_sock.send_all(protocol.error_message())
+            self.send_all(client_sock, protocol.error_message())
 
             
     def __handle_client_connection(self, client_sock):
@@ -127,7 +127,7 @@ class Server:
 
             buffer.extend(chunk)
     
-    def send_all(skt, data: bytes):
+    def send_all(self,skt, data: bytes):
         """
         Envía todos los bytes del mensaje por el socket.
         Se asegura que todo se envíe, evitando short-write.
