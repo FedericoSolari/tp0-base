@@ -13,8 +13,8 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        # Agrego time out para que no se qude esperando por siempre una conxion
-        self._server_socket.settimeout(5.0)
+        # # Agrego time out para que no se qude esperando por siempre una conxion
+        # self._server_socket.settimeout(5.0)
         self._client_skts = []
         self.shutdown = False
 
