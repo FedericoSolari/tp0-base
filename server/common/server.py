@@ -95,15 +95,16 @@ class Server:
                     if is_started:
                         self.__handle_bets(client_sock, msg)
                     else:
+                        logging.info("Cerrandooo")
                         break
-                        # logging.info("Cerrandooo")
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
             logging.info("CIERRO EL SOCKET")
             client_sock.close()
         # Elimino el socket almacenado
-        self._client_skts.remove(client_sock)
+            if client_sock in self._client_skts:
+                self._client_skts.remove(client_sock)
 
     def recv_all(self, client_sock, leftover=None):
         buffer = bytearray()
