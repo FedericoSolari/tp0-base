@@ -101,6 +101,7 @@ func (c *Client) recvall() (string, error) {
 }
 
 func (c *Client) SendStart() error {
+	log.Info("Envio start")
 	err := c.sendall([]byte(startMessage()))
 	if err != nil {
 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
@@ -111,6 +112,7 @@ func (c *Client) SendStart() error {
 }
 
 func (c *Client) SendFinish() error {
+	log.Info("Envio finish")
 	err := c.sendall([]byte(AllBetsDone()))
 	if err != nil {
 		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",

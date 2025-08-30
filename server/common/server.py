@@ -72,6 +72,7 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        is_started = False
         try:
             while True:
                 msg = self.recv_all(client_sock)
@@ -79,12 +80,18 @@ class Server:
                     break
 
                 if protocol.startMessage(msg):
+                    is_started = True
                     logging.info("Inicio de recepcion de bets")
                 elif protocol.AllBetsDone(msg):
+                    is_started = False
                     logging.info("Fin de recepcion de bets")
                     break
                 else:
-                    self.__handle_bets(client_sock, msg)
+                    if is_started:
+                        self.__handle_bets(client_sock, msg)
+                    else:
+                        logging.info("Cerrandooo")
+                        break
 
 
         except OSError as e:
