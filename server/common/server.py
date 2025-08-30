@@ -57,16 +57,23 @@ class Server:
         try:
             # recibo todo y decodifico el mensaje
             msg = self.recv_all(client_sock)
+            batch_ok = True
 
-            bet = protocol.parse_bet_message(msg)
-            if bet:
+            bets = protocol.parse_bet_message(msg)
+            for bet in bets:
                 try:
                     utils.store_bets([bet])
                     logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-                    client_sock.sendall(protocol.success_message())
                 except Exception as e:
+                    batch_ok = False
                     logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
+                    break
                     
+            if batch_ok:
+                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+                client_sock.sendall(protocol.success_message())
+            else:
+                client_sock.sendall(protocol.error_message())
 
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")

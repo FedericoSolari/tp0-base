@@ -121,7 +121,7 @@ func (c *Client) ProcessBets(bets []*Bet) {
 	if IsSuccessResponse(response) {
 		log.Infof("action: batch_de_apuestas_enviado | result: success | cantidad: %d", len(bets))
 	} else {
-		// reenviar?
+		log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
 	}
 }
 

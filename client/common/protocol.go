@@ -19,6 +19,10 @@ func IsSuccessResponse(response string) bool {
 	return strings.TrimSpace(response) == "OK"
 }
 
+func IsSResponse(response string) bool {
+	return strings.TrimSpace(response) == "ERROR"
+}
+
 func FormatBatchMessage(bets []*Bet) string {
 	var msgs []string
 	for _, bet := range bets {
