@@ -73,6 +73,7 @@ class Server:
         client socket will also be closed
         """
         is_started = False
+        logging.info("Inicio __handle_client_connection")
         try:
             while True:
                 msg = self.recv_all(client_sock)

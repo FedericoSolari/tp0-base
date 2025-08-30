@@ -63,6 +63,8 @@ func (c *Client) sendall(data []byte) error {
 	total := len(data)
 	sent := 0
 
+	fmt.Printf(">>> Enviando (%d bytes): %q\n", len(data), data)
+
 	for sent < total {
 		n, err := c.conn.Write(data[sent:])
 		if err != nil {
