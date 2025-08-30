@@ -59,9 +59,17 @@ func (bl *BetLoader) NextBatch() ([]*Bet, error) {
 			return nil, err
 		}
 
-		num, err := strconv.Atoi(data[5])
-		if err != nil {
-			return nil, fmt.Errorf("valor invalido en Number: %v", err)
+		// Si la fila tiene menos datos, los completo con vacio
+		for len(data) < 6 {
+			data = append(data, "")
+		}
+
+		num := 0
+		if data[5] != "" {
+			num, err = strconv.Atoi(data[5])
+			if err != nil {
+				return nil, fmt.Errorf("valor invalido en Number: %v", err)
+			}
 		}
 
 		bet := NewBet(data[0], data[1], data[2], data[3], data[4], num)
