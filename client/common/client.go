@@ -213,6 +213,14 @@ func (c *Client) StartClientLoop() {
 	c.SendFinish()
 
 	log.Infof("SALGO DEL CLIENTE")
+	if c.conn != nil {
+		err := c.conn.Close()
+		if err != nil {
+			log.Errorf("Error cerrando la conexión: %v", err)
+		} else {
+			log.Infof("Conexión cerrada correctamente")
+		}
+	}
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
