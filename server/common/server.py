@@ -72,16 +72,19 @@ class Server:
                     
             if batch_ok:
                 logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                client_sock.sendall(protocol.success_message())
+                client_sock.send_all(protocol.success_message())
             else:
                 # logging.info(f"action: apuesta_recibida | result: fail | cantidad: {fails_bets}")
                 logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-                client_sock.sendall(protocol.error_message())
+                client_sock.send_all(protocol.error_message())
 
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
-            time.sleep(2)
+            try:
+                client_sock.shutdown(socket.SHUT_WR)
+            except OSError:
+                pass
             client_sock.close()
         # Elimino el socket almacenado
         self._client_skts.remove(client_sock)
