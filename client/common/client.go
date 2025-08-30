@@ -76,30 +76,43 @@ func (c *Client) sendall(data []byte) error {
 	return nil
 }
 
-func (c *Client) recvall() (string, error) {
+func (c *Client) recvall(buffer []byte) (string, []byte, error) {
 	if c.conn == nil {
-		return "", fmt.Errorf("no hay una conexion abierta")
+		return "", nil, fmt.Errorf("no hay una conexion abierta")
 	}
 
-	buffer := make([]byte, 0, 1024)
+	// si buffer es nil, inicializamos uno nuevo
+	if buffer == nil {
+		buffer = make([]byte, 0, 1024)
+	}
+
 	tmp := make([]byte, 256)
-	found := false
-	for !found {
-		//
+
+	for {
+		// busco un \n en el buffer acumulado
+		if idx := bytes.IndexByte(buffer, '\n'); idx != -1 {
+			// devuelvo hasta el '\n' incluido
+			line := buffer[:idx+1]
+			// guardo lo que sobra después del '\n'
+			rest := buffer[idx+1:]
+			return string(line), rest, nil
+		}
+
+		// leo más datos del socket
 		n, err := c.conn.Read(tmp)
 		if err != nil {
-			return "", err
+			return "", buffer, err
+		}
+		if n == 0 {
+			// socket cerrado
+			if len(buffer) > 0 {
+				return string(buffer), nil, nil
+			}
+			return "", nil, fmt.Errorf("socket cerrado")
 		}
 
 		buffer = append(buffer, tmp[:n]...)
-
-		// verifico si ya lei el '\n'
-		if bytes.Contains(tmp[:n], []byte{'\n'}) {
-			found = true
-		}
 	}
-
-	return string(buffer), nil
 }
 
 func (c *Client) SendStart() error {
@@ -125,6 +138,7 @@ func (c *Client) SendFinish() error {
 }
 
 func (c *Client) ProcessBets(bets []*Bet) {
+	var leftover []byte
 
 	msg := FormatBatchMessage(bets)
 
@@ -135,7 +149,7 @@ func (c *Client) ProcessBets(bets []*Bet) {
 		return
 	}
 
-	response, err := c.recvall()
+	response, leftover, err := c.recvall(leftover)
 	if err != nil {
 		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
@@ -198,6 +212,7 @@ func (c *Client) StartClientLoop() {
 	c.ProcessAllBets()
 	c.SendFinish()
 
+	log.Infof("SALGO DEL CLIENTE")
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
