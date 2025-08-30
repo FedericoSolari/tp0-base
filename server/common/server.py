@@ -4,7 +4,7 @@ import signal
 import sys
 from common import utils
 from common import protocol
-import datetime
+import time
 
 
 class Server:
@@ -81,6 +81,7 @@ class Server:
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
+            time.sleep(2)
             client_sock.close()
         # Elimino el socket almacenado
         self._client_skts.remove(client_sock)
