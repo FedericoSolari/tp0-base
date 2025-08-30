@@ -95,8 +95,6 @@ class Server:
                     else:
                         logging.info("Cerrandooo")
                         break
-
-
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:

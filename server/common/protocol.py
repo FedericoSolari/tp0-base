@@ -37,7 +37,9 @@ def error_message() -> bytes:
     return b"ERROR\n"
 
 def isStartMessage(msg: str) -> bool:
-    return msg.strip() == "START"
+    msg_str = msg.decode('utf-8')
+    return msg_str.strip() == "START"
 
 def isAllBetsDoneMessage(msg: str) -> bool:
-    return msg.strip() == "END"
+    msg_str = msg.decode('utf-8')
+    return msg_str.strip() == "END"
