@@ -18,10 +18,16 @@ type Bet struct {
 	Number    int
 }
 
-func NewBet() *Bet {
-	return &Bet{}
+func NewBet(agency string, firstName, lastName, document, birthdate string, number int) *Bet {
+	return &Bet{
+		Agency:    agency,
+		FirstName: firstName,
+		LastName:  lastName,
+		Document:  document,
+		Birthdate: birthdate,
+		Number:    number,
+	}
 }
-
 func NewBetFromEnvs() (*Bet, error) {
 	agency := os.Getenv("CLI_ID")
 	firstName := os.Getenv("NOMBRE")

@@ -3,6 +3,7 @@ package common
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -16,10 +17,11 @@ var log = logging.MustGetLogger("log")
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
-	ID            string
-	ServerAddress string
-	LoopAmount    int
-	LoopPeriod    time.Duration
+	ID             string
+	ServerAddress  string
+	LoopAmount     int
+	LoopPeriod     time.Duration
+	BatchMaxAmount int
 }
 
 // Client Entity that encapsulates how
@@ -98,6 +100,55 @@ func (c *Client) recvall() (string, error) {
 	return string(buffer), nil
 }
 
+func (c *Client) ProcessBets(bets []*Bet) {
+
+	msg := FormatBatchMessage(bets)
+
+	err := c.sendall([]byte(msg))
+	if err != nil {
+		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return
+	}
+
+	response, err := c.recvall()
+	if err != nil {
+		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return
+	}
+
+	if IsSuccessResponse(response) {
+		log.Infof("action: batch_de_apuestas_enviado | result: success | cantidad: %d", len(bets))
+	} else {
+		// reenviar?
+	}
+}
+
+func (c *Client) ProcessAllBets() {
+	loader, err := NewBetLoader("/data/agency.csv", c.config.BatchMaxAmount)
+	if err != nil {
+		log.Errorf("action: load_bets | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return
+	}
+	defer loader.Close()
+
+	for {
+		batch, err := loader.NextBatch()
+		if err == io.EOF {
+			break // no quedan más batches
+		}
+		if err != nil {
+			log.Errorf("action: load_batch | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return
+		}
+
+		c.ProcessBets(batch)
+	}
+}
+
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
 	sigs := make(chan os.Signal, 1)
@@ -117,37 +168,11 @@ func (c *Client) StartClientLoop() {
 	}
 	defer c.conn.Close() // Al salir de la func cierro el skt
 
-	bets, err := NewBet().LoadBets("/data/agency.csv")
-	if err != nil {
-		log.Errorf("action: load_bets | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
-		return
-	}
-
-	for _, bet := range bets {
-		msg := FormatBetMessage(bet)
-
-		err = c.sendall([]byte(msg))
-		if err != nil {
-			log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
-				c.config.ID, err)
-			return
-		}
-
-		response, err := c.recvall()
-		if err != nil {
-			log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
-				c.config.ID, err)
-			return
-		}
-
-		if IsSuccessResponse(response) {
-			log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s",
-				bet.Document, bet.Number)
-		}
-	}
+	c.ProcessAllBets()
 
 }
+
+// c.config.Batch.MaxAmount
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
 	if c.conn != nil {
