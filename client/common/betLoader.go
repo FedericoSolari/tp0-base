@@ -83,9 +83,9 @@ func (bl *BetLoader) NextBatch() ([]*Bet, error) {
 			data = append(data, "")
 		}
 
-		num := validateField(data[5], "num")
+		num := validateField(data[4], "num")
 
-		bet := NewBet(agency, data[1], data[2], data[3], data[4], num)
+		bet := NewBet(agency, data[0], data[1], data[2], data[3], num)
 
 		bets, ok = bl.tryAddBet(bet, bets, &currentBatchSize)
 		if !ok {
