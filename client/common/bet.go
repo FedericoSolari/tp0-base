@@ -1,16 +1,14 @@
 package common
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 )
 
 // Bet representa una apuesta de usuario
 type Bet struct {
-	Agency    string
+	Agency    int
 	FirstName string
 	LastName  string
 	Document  string
@@ -18,7 +16,7 @@ type Bet struct {
 	Number    int
 }
 
-func NewBet(agency string, firstName, lastName, document, birthdate string, number int) *Bet {
+func NewBet(agency int, firstName, lastName, document, birthdate string, number int) *Bet {
 	return &Bet{
 		Agency:    agency,
 		FirstName: firstName,
@@ -29,12 +27,17 @@ func NewBet(agency string, firstName, lastName, document, birthdate string, numb
 	}
 }
 func NewBetFromEnvs() (*Bet, error) {
-	agency := os.Getenv("CLI_ID")
+	agencystr := os.Getenv("CLI_ID")
 	firstName := os.Getenv("NOMBRE")
 	lastName := os.Getenv("APELLIDO")
 	document := os.Getenv("DOCUMENTO")
 	birth := os.Getenv("NACIMIENTO")
 	numberStr := os.Getenv("NUMERO")
+
+	agency, err1 := strconv.Atoi(agencystr)
+	if err1 != nil {
+		return nil, fmt.Errorf("Agency invalido: %v", err1)
+	}
 
 	number, err := strconv.Atoi(numberStr)
 	if err != nil {
@@ -49,42 +52,4 @@ func NewBetFromEnvs() (*Bet, error) {
 		Birthdate: birth,
 		Number:    number,
 	}, nil
-}
-
-func (b *Bet) LoadBets(path string) ([]*Bet, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	reader := csv.NewReader(f)
-	var bets []*Bet
-
-	for {
-		data, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		num, err := strconv.Atoi(data[5])
-		if err != nil {
-			return nil, fmt.Errorf("valor invalido en Number: %v", err)
-		}
-
-		bet := &Bet{
-			Agency:    data[0],
-			FirstName: data[1],
-			LastName:  data[2],
-			Document:  data[3],
-			Birthdate: data[4],
-			Number:    num,
-		}
-		bets = append(bets, bet)
-	}
-
-	return bets, nil
 }
