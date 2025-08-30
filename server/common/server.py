@@ -74,9 +74,10 @@ class Server:
         """
         is_started = False
         logging.info("Inicio __handle_client_connection")
+        leftover = None
         try:
             while True:
-                msg = self.recv_all(client_sock)
+                msg, leftover = self.recv_all(client_sock, leftover)
                 logging.info(f"Mensaje recibido crudo: {msg!r}")
                 if not msg:
                     break
@@ -103,22 +104,30 @@ class Server:
         # Elimino el socket almacenado
         self._client_skts.remove(client_sock)
 
-    def recv_all(self, client_sock):
-
+    def recv_all(self, client_sock, leftover=None):
         buffer = bytearray()
-        found = False
-        while found == False:
+
+        # si quedo algo de la llamada anterior, lo usamos de arranque
+        if leftover:
+            buffer.extend(leftover)
+
+        while True:
+            # hay un \n en el buffer?
+            idx = buffer.find(b'\n')
+            if idx != -1:
+                # Devuelvo hasta el \n y lo que sobra ( o nada)
+                line = buffer[:idx + 1]
+                rest = buffer[idx + 1:] or None
+                return bytes(line), rest
+
             chunk = client_sock.recv(256)
             if not chunk:
-                logging.error(f'action: Error en la lectura del mensaje')
-                break
+                if buffer:
+                    return bytes(buffer), None
+                logging.error("action: Error en la lectura del mensaje (socket cerrado)")
+                return None, None
+
             buffer.extend(chunk)
-            
-            # busco el \n que significa el fin segun el protoolo definido
-            if b'\n' in chunk:
-                found = True
-            
-        return bytes(buffer)
     
     def send_all(skt, data: bytes):
         """
