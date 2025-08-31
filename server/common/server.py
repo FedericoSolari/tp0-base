@@ -105,9 +105,14 @@ class Server:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
             self.send_all(client_sock, protocol.end_message())
-            logging.info("CIERRO EL SOCKET")
+            while True:
+                data, _ = self.recv_all(client_sock, None)
+                if not data:
+                    logging.info("Cliente cerro la conexion (EOF)")
+                    break
             try:
-              client_sock.close()
+                logging.info("CIERRO EL SOCKET")
+                client_sock.close()
             except OSError as e:
                 logging.error(f"Error cerrando socket cliente: {e}")
         # Elimino el socket almacenado

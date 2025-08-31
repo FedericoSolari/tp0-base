@@ -247,10 +247,6 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	if tcpConn, ok := c.conn.(*net.TCPConn); ok {
-		tcpConn.CloseWrite()
-	}
-
 	// espero que el server haya recibido nuestro final para poder cerrar
 	response, _, err := c.recvall(nil)
 	if !IsEndResponse(response) {
