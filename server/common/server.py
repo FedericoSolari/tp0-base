@@ -108,8 +108,8 @@ class Server:
                 self.send_all(client_sock, protocol.end_message())
                 while True:
                     logging.info("MANDE SEND, AHORA ESPERO EL EOF")
-                    data, _ = self.recv_all(client_sock, None)
-                    if data == None:
+                    data = client_sock.recv(256)
+                    if not data:
                         logging.info("Cliente cerro la conexion (EOF)")
                         break
             except OSError as e:
