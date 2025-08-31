@@ -41,6 +41,7 @@ class Server:
                 # Almaceno el socket del cliente
                 self._client_skts.append(client_sock)
                 self.__handle_client_connection(client_sock)
+                self.send_all(client_sock, protocol.end_message())
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
@@ -93,7 +94,7 @@ class Server:
                 elif protocol.isAllBetsDoneMessage(msg):
                     is_started = False
                     logging.info("END")
-                    self.send_all(client_sock, protocol.end_message())
+                    # self.send_all(client_sock, protocol.end_message())
                     break
                 else:
                     if is_started:
