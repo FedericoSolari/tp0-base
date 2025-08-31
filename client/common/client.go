@@ -226,6 +226,22 @@ func (c *Client) StartClientLoop() {
 	//  NO importa como termine la funcion al final libero todo
 	defer c.close_connections()
 
+	c.runClientSession()
+
+	time.Sleep(500 * time.Millisecond)
+}
+
+func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
+	if c.conn != nil {
+		err := c.conn.Close()
+		if err == nil {
+			log.Infof("action: close_connection | result: success | client_id: %v", c.config.ID)
+		}
+	}
+	log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
+}
+
+func (c *Client) runClientSession() {
 	if err := c.SendStart(); err != nil {
 		log.Infof("ERROR EN EL SENDSTART")
 		return
@@ -241,25 +257,12 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	// espero que el server haya recibido nuestro final para poder cerrar
+	// Espero que el server haya recibido nuestro final para poder cerrar
 	response, _, err := c.recvall(nil)
 	if !IsEndResponse(response) {
-		log.Infof("action: recv_finish_mesagge | result: fail_response")
+		log.Infof("action: recv_finish_message | result: fail_response")
 	}
 	if err != nil {
-		log.Errorf("action: recv_finish_mesagge | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
+		log.Errorf("action: recv_finish_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
 	}
-
-	time.Sleep(100 * time.Millisecond)
-}
-
-func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
-	if c.conn != nil {
-		err := c.conn.Close()
-		if err == nil {
-			log.Infof("action: close_connection | result: success | client_id: %v", c.config.ID)
-		}
-	}
-	log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
 }
