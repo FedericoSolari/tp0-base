@@ -88,6 +88,16 @@ class Server:
                 logging.error(f"action: __process_client_messages | Message not identificate")
                 break
 
+    # Envia el mensaje de finalizacion y cierra el socket del cliente.
+    def __close_client_socket(self, client_sock):
+        try:
+            self.send_all(client_sock, protocol.end_message())
+            client_sock.close()
+        except OSError as e:
+            logging.error(f"Error cerrando socket cliente: {e}")
+        finally:
+            if client_sock in self._client_skts:
+                self._client_skts.remove(client_sock)
             
     def __handle_client_connection(self, client_sock):
         """
@@ -101,14 +111,7 @@ class Server:
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
-            self.send_all(client_sock, protocol.end_message())
-            try:
-                client_sock.close()
-            except OSError as e:
-                logging.error(f"Error cerrando socket cliente: {e}")
-        # Elimino el socket almacenado
-            if client_sock in self._client_skts:
-                self._client_skts.remove(client_sock)
+            self.__close_client_socket(client_sock)
 
     def recv_all(self, client_sock, leftover=None):
         buffer = bytearray()
