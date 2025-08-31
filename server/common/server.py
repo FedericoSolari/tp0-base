@@ -68,6 +68,26 @@ class Server:
             logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
             self.send_all(client_sock, protocol.error_message())
 
+    def __process_client_messages(self, client_sock):
+
+        leftover = None
+        session_active = False
+        while True:
+            msg, leftover = self.recv_all(client_sock, leftover)
+            if not msg:
+                break
+
+            if protocol.isStartMessage(msg):
+                session_active = True
+            elif protocol.isAllBetsDoneMessage(msg):
+                session_active = False
+                break
+            elif session_active:
+                self.__handle_bets(client_sock, msg)
+            else:
+                logging.error(f"action: __process_client_messages | Message not identificate")
+                break
+
             
     def __handle_client_connection(self, client_sock):
         """
@@ -76,24 +96,8 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
-        is_started = False
-        leftover = None
         try:
-            while True:
-                msg, leftover = self.recv_all(client_sock, leftover)
-                if not msg:
-                    break
-
-                if protocol.isStartMessage(msg):
-                    is_started = True
-                elif protocol.isAllBetsDoneMessage(msg):
-                    is_started = False
-                    break
-                else:
-                    if is_started:
-                        self.__handle_bets(client_sock, msg)
-                    else:
-                        break
+             self.__process_client_messages(client_sock)
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
