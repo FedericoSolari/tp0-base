@@ -91,33 +91,40 @@ func (c *Client) recvall(buffer []byte) (string, []byte, error) {
 
 	for {
 		// busco un \n en el buffer acumulado
-		if idx := bytes.IndexByte(buffer, '\n'); idx != -1 {
-			// devuelvo hasta el '\n' incluido
-			line := buffer[:idx+1]
-			// guardo lo que sobra después del '\n'
-			rest := buffer[idx+1:]
-			return string(line), rest, nil
+		if line, rest, found := extractLine(buffer); found {
+			return line, rest, nil
 		}
 
 		// leo datos del socket
-		n, err := c.conn.Read(tmp)
+		bytes_leidos, err := c.conn.Read(tmp)
 		if err != nil {
-			if err == io.EOF {
-				return "", buffer, io.EOF
-			}
-			return "", buffer, fmt.Errorf("error leyendo del socket: %w", err)
+			return handleReadError(err, buffer)
 		}
 
-		if n == 0 {
-			// socket cerrado
-			if len(buffer) > 0 {
+		if bytes_leidos == 0 {
+			if len(buffer) > 0 { // si quedo algo en el buffer lo devuelvo
 				return string(buffer), nil, nil
 			}
 			return "", nil, fmt.Errorf("socket cerrado")
 		}
 
-		buffer = append(buffer, tmp[:n]...)
+		buffer = append(buffer, tmp[:bytes_leidos]...)
 	}
+}
+
+// busca un '\n' en el buffer y devuleve hasta el \n y lo que esta despues
+func extractLine(buffer []byte) (line string, rest []byte, found bool) {
+	if idx := bytes.IndexByte(buffer, '\n'); idx != -1 {
+		return string(buffer[:idx+1]), buffer[idx+1:], true
+	}
+	return "", buffer, false
+}
+
+func handleReadError(err error, buffer []byte) (string, []byte, error) {
+	if err == io.EOF {
+		return "", buffer, io.EOF
+	}
+	return "", buffer, fmt.Errorf("error leyendo del socket: %w", err)
 }
 
 func (c *Client) SendStart() error {
