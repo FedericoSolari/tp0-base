@@ -77,36 +77,28 @@ class Server:
         client socket will also be closed
         """
         is_started = False
-        logging.info("Inicio __handle_client_connection")
         leftover = None
         try:
             while True:
                 msg, leftover = self.recv_all(client_sock, leftover)
-                # logging.info(f"msj: {msg!r}")
                 if not msg:
                     break
 
                 if protocol.isStartMessage(msg):
                     is_started = True
-                    # logging.info("Inicio de recepcion de bets")
-                    logging.info("START")
                 elif protocol.isAllBetsDoneMessage(msg):
                     is_started = False
-                    logging.info("END")
-                    # self.send_all(client_sock, protocol.end_message())
                     break
                 else:
                     if is_started:
                         self.__handle_bets(client_sock, msg)
                     else:
-                        logging.info("Cerrandooo")
                         break
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
             self.send_all(client_sock, protocol.end_message())
             try:
-                logging.info("CIERRO EL SOCKET")
                 client_sock.close()
             except OSError as e:
                 logging.error(f"Error cerrando socket cliente: {e}")

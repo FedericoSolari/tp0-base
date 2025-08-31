@@ -121,7 +121,6 @@ func (c *Client) recvall(buffer []byte) (string, []byte, error) {
 }
 
 func (c *Client) SendStart() error {
-	// log.Infof("START")
 	err := c.sendall([]byte(startMessage()))
 	if err != nil {
 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
@@ -132,7 +131,6 @@ func (c *Client) SendStart() error {
 }
 
 func (c *Client) SendFinish() error {
-	// log.Infof("END")
 	err := c.sendall([]byte(AllBetsDone()))
 	if err != nil {
 		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
@@ -161,15 +159,11 @@ func (c *Client) ProcessBets(bets []*Bet) error {
 		return err
 	}
 
-	if IsSuccessResponse(response) {
-		// log.Infof("action: batch_de_apuestas_enviado | result: success | cantidad: %d", len(bets))
-		// log.Infof("OK")
-		return nil
-	} else {
-		// log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
-		log.Infof("FAIL")
+	if !IsSuccessResponse(response) {
+		log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
 		return fmt.Errorf("el servidor respondio con fallo: %q", response)
 	}
+	return nil
 }
 
 func (c *Client) ProcessAllBets() error {
@@ -250,15 +244,14 @@ func (c *Client) StartClientLoop() {
 	// espero que el server haya recibido nuestro final para poder cerrar
 	response, _, err := c.recvall(nil)
 	if !IsEndResponse(response) {
-		log.Infof("FAIL")
+		log.Infof("action: recv_finish_mesagge | result: fail_response")
 	}
 	if err != nil {
-		log.Errorf("action: recv_finich_mesagge | result: fail | client_id: %v | error: %v",
+		log.Errorf("action: recv_finish_mesagge | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
-	log.Infof("SALGO DEL CLIENTE")
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
