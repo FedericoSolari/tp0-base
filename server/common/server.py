@@ -106,7 +106,6 @@ class Server:
         finally:
             self.send_all(client_sock, protocol.end_message())
             try:
-                client_sock.shutdown(socket.SHUT_WR)
                 logging.info("CIERRO EL SOCKET")
                 client_sock.close()
             except OSError as e:
