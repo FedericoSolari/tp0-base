@@ -163,7 +163,7 @@ func (c *Client) ProcessBets(bets []*Bet) error {
 
 	if IsSuccessResponse(response) {
 		// log.Infof("action: batch_de_apuestas_enviado | result: success | cantidad: %d", len(bets))
-		log.Infof("OK")
+		// log.Infof("OK")
 		return nil
 	} else {
 		// log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
@@ -233,14 +233,17 @@ func (c *Client) StartClientLoop() {
 	defer c.close_connections()
 
 	if err := c.SendStart(); err != nil {
+		log.Infof("ERROR EN EL SENDSTART")
 		return
 	}
 
 	if err := c.ProcessAllBets(); err != nil {
+		log.Infof("ERROR EN EL PROCESSALLBETS")
 		return
 	}
 
 	if err := c.SendFinish(); err != nil {
+		log.Infof("ERROR EN EL SENDFINISH")
 		return
 	}
 
