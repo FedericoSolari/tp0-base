@@ -107,7 +107,7 @@ class Server:
             self.send_all(client_sock, protocol.end_message())
             while True:
                 data, _ = self.recv_all(client_sock, None)
-                if not data:
+                if data == None:
                     logging.info("Cliente cerro la conexion (EOF)")
                     break
             try:
