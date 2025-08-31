@@ -110,6 +110,8 @@ class Server:
                 if data == None:
                     logging.info("Cliente cerro la conexion (EOF)")
                     break
+                else:
+                    logging.info("no cerro el loop")
             try:
                 logging.info("CIERRO EL SOCKET")
                 client_sock.close()
