@@ -247,6 +247,7 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
+	time.Sleep(10 * time.Second)
 	log.Infof("SALGO DEL CLIENTE")
 }
 
