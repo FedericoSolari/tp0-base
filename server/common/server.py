@@ -41,7 +41,6 @@ class Server:
                 # Almaceno el socket del cliente
                 self._client_skts.append(client_sock)
                 self.__handle_client_connection(client_sock)
-                self.send_all(client_sock, protocol.end_message())
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
@@ -105,6 +104,7 @@ class Server:
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
+            self.send_all(client_sock, protocol.end_message())
             logging.info("CIERRO EL SOCKET")
             try:
               client_sock.close()
