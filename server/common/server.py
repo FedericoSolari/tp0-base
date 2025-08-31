@@ -139,7 +139,7 @@ class Server:
             if not chunk:
                 if buffer:
                     return bytes(buffer), None
-                logging.error("action: Error en la lectura del mensaje (socket cerrado)")
+                logging.info("action: EOF recibido (socket cerrado)")
                 return None, None
 
             buffer.extend(chunk)
