@@ -247,10 +247,14 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
+	if tcpConn, ok := c.conn.(*net.TCPConn); ok {
+		tcpConn.CloseWrite()
+	}
+
 	// espero que el server haya recibido nuestro final para poder cerrar
-	response, leftover, err := c.recvall(nil)
+	response, _, err := c.recvall(nil)
 	if !IsEndResponse(response) {
-		log.Infof("FAIL", leftover)
+		log.Infof("FAIL")
 	}
 	if err != nil {
 		log.Errorf("action: recv_finich_mesagge | result: fail | client_id: %v | error: %v",
