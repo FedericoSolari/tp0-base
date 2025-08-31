@@ -25,7 +25,7 @@ class Server:
 
         logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
-        self.clean_resourses()
+        # self.clean_resourses()
         
     def run(self):
         """
@@ -44,6 +44,10 @@ class Server:
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
+            except OSError as e:
+                logging.error(f"Error en loop principal: {e}")
+                break
+        self.clean_resourses()
 
 
     def __handle_bets(self, client_sock, msg):
@@ -101,7 +105,10 @@ class Server:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
             logging.info("CIERRO EL SOCKET")
-            client_sock.close()
+            try:
+              client_sock.close()
+            except OSError as e:
+                logging.error(f"Error cerrando socket cliente: {e}")
         # Elimino el socket almacenado
             if client_sock in self._client_skts:
                 self._client_skts.remove(client_sock)
@@ -168,11 +175,16 @@ class Server:
         logging.info('Received SIGTERM signal')
 
         for client_sock in self._client_skts:
-            logging.info('Closing client connection')
-            client_sock.close()
+            try:
+                logging.info('Closing client connection')
+                client_sock.close()
+            except OSError as e:
+                logging.error(f"Error cerrando client socket: {e}")
+        self._client_skts.clear()
         
-        self._server_socket.close()
-        logging.info('Server connection closed')
+        try:
+            self._server_socket.close()
+        except OSError as e:
+           pass
         
         logging.info('Resources closed successfully')
-        sys.exit(0)
