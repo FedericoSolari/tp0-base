@@ -257,7 +257,7 @@ func (c *Client) StartClientLoop() {
 			c.config.ID, err)
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 	log.Infof("SALGO DEL CLIENTE")
 }
 
