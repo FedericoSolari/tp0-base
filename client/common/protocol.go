@@ -19,6 +19,10 @@ func IsSuccessResponse(response string) bool {
 	return strings.TrimSpace(response) == "OK"
 }
 
+func IsEndResponse(response string) bool {
+	return strings.TrimSpace(response) == "END"
+}
+
 func IsERRORResponse(response string) bool {
 	return strings.TrimSpace(response) == "ERROR"
 }

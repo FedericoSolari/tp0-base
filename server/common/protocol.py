@@ -33,6 +33,9 @@ def parse_bet_message(bytes_msg: bytes):
 def success_message() -> bytes:
     return b"OK\n"
 
+def end_message() -> bytes:
+    return b"END\n"
+
 def error_message() -> bytes:
     return b"ERROR\n"
 

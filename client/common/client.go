@@ -247,7 +247,17 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	time.Sleep(10 * time.Second)
+	// espero que el server haya recibido nuestro final para poder cerrar
+	response, leftover, err := c.recvall(nil)
+	if !IsEndResponse(response) {
+		log.Infof("FAIL", leftover)
+	}
+	if err != nil {
+		log.Errorf("action: recv_finich_mesagge | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+	}
+
+	// time.Sleep(10 * time.Second)
 	log.Infof("SALGO DEL CLIENTE")
 }
 

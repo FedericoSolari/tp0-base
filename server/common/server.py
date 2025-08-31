@@ -93,7 +93,7 @@ class Server:
                 elif protocol.isAllBetsDoneMessage(msg):
                     is_started = False
                     logging.info("END")
-                    # logging.info("Fin de recepcion de bets")
+                    self.send_all(client_sock, protocol.end_message())
                     break
                 else:
                     if is_started:
