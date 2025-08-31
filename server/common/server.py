@@ -104,18 +104,9 @@ class Server:
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
-            try: 
-                self.send_all(client_sock, protocol.end_message())
-                while True:
-                    logging.info("MANDE SEND, AHORA ESPERO EL EOF")
-                    data = client_sock.recv(256)
-                    if not data:
-                        logging.info("Cliente cerro la conexion (EOF)")
-                        break
-            except OSError as e:
-                logging.error(f"Error esperando EOF: {e}")
-
+            self.send_all(client_sock, protocol.end_message())
             try:
+                client_sock.shutdown(socket.SHUT_WR)
                 logging.info("CIERRO EL SOCKET")
                 client_sock.close()
             except OSError as e:
