@@ -42,7 +42,7 @@ class Server:
             clientes = int(clientes)
         else:
             print("No se encontró la variable CLIENTS")
-            
+
         while self.shutdown == False:
             try:
                 conn = self.__accept_new_connection()
@@ -80,7 +80,7 @@ class Server:
                 break
                 
         if batch_ok:
-            # logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+            logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
             conn.send_message(protocol.success_message())
         else:
             logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
