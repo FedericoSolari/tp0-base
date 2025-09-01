@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -42,145 +41,76 @@ func NewClient(config ClientConfig) *Client {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return err
-	}
-	c.conn = conn
-	return nil
-}
+// func (c *Client) createClientSocket() error {
+// 	conn, err := net.Dial("tcp", c.config.ServerAddress)
+// 	if err != nil {
+// 		log.Criticalf(
+// 			"action: connect | result: fail | client_id: %v | error: %v",
+// 			c.config.ID,
+// 			err,
+// 		)
+// 		return err
+// 	}
+// 	c.conn = conn
+// 	return nil
+// }
 
-func (c *Client) sendall(data []byte) error {
-	if c.conn == nil {
-		return fmt.Errorf("no hay una conexion abierta")
-	}
+// func (c *Client) SendStart() error {
+// 	err := c.sendall([]byte(startMessage()))
+// 	if err != nil {
+// 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
+// 			c.config.ID, err)
+// 		return err
+// 	}
+// 	return nil
+// }
 
-	total := len(data)
-	sent := 0
+// func (c *Client) SendFinish() error {
+// 	err := c.sendall([]byte(AllBetsDone()))
+// 	if err != nil {
+// 		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
+// 			c.config.ID, err)
+// 		return err
+// 	}
+// 	return nil
+// }
 
-	// fmt.Printf(">>> Enviando (%d bytes): %q\n", len(data), data)
-
-	for sent < total {
-		n, err := c.conn.Write(data[sent:])
-		if err != nil {
-			return err
-		}
-		sent += n
-	}
-
-	return nil
-}
-
-func (c *Client) recvall(buffer []byte) (string, []byte, error) {
-	if c.conn == nil {
-		return "", nil, fmt.Errorf("no hay una conexion abierta")
-	}
-
-	// si buffer es nil, inicializamos uno nuevo
-	if buffer == nil {
-		buffer = make([]byte, 0, 1024)
-	}
-
-	tmp := make([]byte, 256)
-
-	for {
-		// busco un \n en el buffer acumulado
-		if line, rest, found := extractLine(buffer); found {
-			return line, rest, nil
-		}
-
-		// leo datos del socket
-		bytes_leidos, err := c.conn.Read(tmp)
-		if err != nil {
-			return handleReadError(err, buffer)
-		}
-
-		if bytes_leidos == 0 {
-			if len(buffer) > 0 { // si quedo algo en el buffer lo devuelvo
-				return string(buffer), nil, nil
-			}
-			return "", nil, fmt.Errorf("socket cerrado")
-		}
-
-		buffer = append(buffer, tmp[:bytes_leidos]...)
-	}
-}
-
-// busca un '\n' en el buffer y devuleve hasta el \n y lo que esta despues
-func extractLine(buffer []byte) (line string, rest []byte, found bool) {
-	if idx := bytes.IndexByte(buffer, '\n'); idx != -1 {
-		return string(buffer[:idx+1]), buffer[idx+1:], true
-	}
-	return "", buffer, false
-}
-
-func handleReadError(err error, buffer []byte) (string, []byte, error) {
-	if err == io.EOF {
-		return "", buffer, io.EOF
-	}
-	return "", buffer, fmt.Errorf("error leyendo del socket: %w", err)
-}
-
-func (c *Client) SendStart() error {
-	err := c.sendall([]byte(startMessage()))
-	if err != nil {
-		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
-		return err
-	}
-	return nil
-}
-
-func (c *Client) SendFinish() error {
-	err := c.sendall([]byte(AllBetsDone()))
-	if err != nil {
-		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
-		return err
-	}
-	return nil
-}
-func (c *Client) waitBeginLottery(leftover []byte) (bool, []byte, error) {
-	response, leftover, err := c.recvall(leftover)
+func (c *Client) waitBeginLottery(handler *ConnectionHandler) (bool, error) {
+	response, err := handler.RecvAll()
 	if err != nil {
 		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
-		return false, leftover, err
+		return false, err
 	}
 
 	if !IsBeginLotteryResponse(response) {
 		log.Infof("action: getWinners | result: Fail ")
-		return false, leftover, fmt.Errorf("el servidor respondio con fallo: %q", response)
+		return false, fmt.Errorf("el servidor respondio con fallo: %q", response)
 	}
 
-	return true, leftover, nil
+	return true, nil
 }
 
-func (c *Client) receiveWinners(leftover []byte) ([]string, error) {
+func (c *Client) receiveWinners(handler *ConnectionHandler) ([]string, error) {
 	var winners []string
 
 	for {
-		response, newleftover, err := c.recvall(leftover)
+		response, err := handler.RecvAll()
 		if err != nil {
-			log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: receiveWinners | result: fail | client_id: %v | error: %v",
 				c.config.ID, err)
 			return winners, err
 		}
-		leftover = newleftover
 
 		if IsWinnerResponse(response) {
 			doc := ParseWinnerDocument(response)
+			winners = append(winners, doc)
 			log.Infof("action: Lottery | winner:%v", doc)
 		} else if IsNoMoreWinnerResponse(response) {
+			log.Infof("action: NO MORE WINNERS")
 			break
 		} else {
-			log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
+			log.Infof("action: RECEIVE_WINNERS | result: Fail ")
 			return winners, fmt.Errorf("el servidor respondio con fallo: %q", response)
 		}
 	}
@@ -188,11 +118,8 @@ func (c *Client) receiveWinners(leftover []byte) ([]string, error) {
 	return winners, nil
 }
 
-func (c *Client) getWinners() error {
-	var leftover []byte
-	beginLottery := false
-
-	beginLottery, leftover, err := c.waitBeginLottery(leftover)
+func (c *Client) getWinners(handler *ConnectionHandler) error {
+	beginLottery, err := c.waitBeginLottery(handler)
 	if err != nil {
 		return err
 	}
@@ -201,7 +128,7 @@ func (c *Client) getWinners() error {
 		return fmt.Errorf("La loteria no comenzo correctamente")
 	}
 
-	winners, err := c.receiveWinners(leftover)
+	winners, err := c.receiveWinners(handler)
 	if err != nil {
 		return err
 	}
@@ -210,19 +137,18 @@ func (c *Client) getWinners() error {
 	return nil
 }
 
-func (c *Client) ProcessBets(bets []*Bet) error {
-	var leftover []byte
+func (c *Client) ProcessBets(handler *ConnectionHandler, bets []*Bet) error {
 
 	msg := FormatBatchMessage(bets)
 
-	err := c.sendall([]byte(msg))
+	err := handler.SendAll([]byte(msg))
 	if err != nil {
 		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return err
 	}
 
-	response, leftover, err := c.recvall(leftover)
+	response, err := handler.RecvAll()
 	if err != nil {
 		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
@@ -233,10 +159,11 @@ func (c *Client) ProcessBets(bets []*Bet) error {
 		log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
 		return fmt.Errorf("el servidor respondio con fallo: %q", response)
 	}
+
 	return nil
 }
 
-func (c *Client) ProcessAllBets() error {
+func (c *Client) ProcessAllBets(handler *ConnectionHandler) error {
 	loader, err := NewBetLoader("/data/agency.csv", c.config.BatchMaxAmount)
 	if err != nil {
 		log.Errorf("action: load_bets | result: fail | client_id: %v | error: %v",
@@ -248,7 +175,7 @@ func (c *Client) ProcessAllBets() error {
 	for {
 		batch, err := loader.NextBatch()
 		if err == io.EOF {
-			break // no quedan más batches
+			break // no quedan mas batches
 		}
 		if err != nil {
 			log.Errorf("action: load_batch | result: fail | client_id: %v | error: %v",
@@ -256,7 +183,7 @@ func (c *Client) ProcessAllBets() error {
 			return err
 		}
 
-		err = c.ProcessBets(batch)
+		err = c.ProcessBets(handler, batch)
 		if err != nil {
 			return err
 		}
@@ -286,17 +213,30 @@ func (c *Client) StartClientLoop() {
 		os.Exit(0)
 	}()
 
-	err := c.createClientSocket()
+	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
+		log.Errorf("action: connect | result: fail | client_id: %v | error: %v", c.config.ID, err)
 		return
 	}
 
-	//  NO importa como termine la funcion al final libero todo
-	defer c.close_connections()
+	//encapsular
+	defer func() {
+		if conn != nil {
+			err := conn.Close()
+			if err != nil {
+				log.Errorf("Error cerrando la conexión: %v", err)
+			} else {
+				log.Infof("Conexión cerrada correctamente")
+			}
+		}
+	}()
 
-	c.runClientSession()
+	handler := NewConnectionHandler(conn)
+
+	//  NO importa como termine la funcion al final libero todo
+	// defer c.close_connections()
+
+	c.runClientSession(handler)
 
 	time.Sleep(500 * time.Millisecond)
 }
@@ -311,33 +251,37 @@ func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
 	log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
 }
 
-func (c *Client) runClientSession() {
-	if err := c.SendStart(); err != nil {
-		log.Infof("ERROR EN EL SENDSTART")
+func (c *Client) runClientSession(handler *ConnectionHandler) {
+	//encapsular
+	if err := handler.SendAll([]byte(startMessage())); err != nil {
+		log.Infof("ERROR EN EL SENDSTART: %v", err)
 		return
 	}
 
-	if err := c.ProcessAllBets(); err != nil {
-		log.Infof("ERROR EN EL PROCESSALLBETS")
+	//encapsular
+	if err := c.ProcessAllBets(handler); err != nil {
+		log.Infof("ERROR EN EL PROCESSALLBETS: %v", err)
 		return
 	}
 
-	if err := c.SendFinish(); err != nil {
-		log.Infof("ERROR EN EL SENDFINISH")
+	if err := handler.SendAll([]byte(AllBetsDone())); err != nil {
+		log.Infof("ERROR EN EL SENDFINISH: %v", err)
 		return
 	}
 
-	if err := c.getWinners(); err != nil {
-		log.Infof("ERROR EN EL getwinners")
+	if err := c.getWinners(handler); err != nil {
+		log.Infof("ERROR EN EL getWinners: %v", err)
 		return
 	}
 
 	// Espero que el server haya recibido nuestro final para poder cerrar
-	response, _, err := c.recvall(nil)
-	if !IsEndResponse(response) {
-		log.Infof("action: recv_finish_message | result: fail_response")
-	}
+	response, err := handler.RecvAll()
 	if err != nil {
 		log.Errorf("action: recv_finish_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
+		return
+	}
+
+	if !IsEndResponse(response) {
+		log.Infof("action: recv_finish_message | result: fail_response | response: %q", response)
 	}
 }
