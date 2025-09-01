@@ -5,8 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -204,14 +202,20 @@ func (c *Client) close_connections() {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGTERM)
+	// sigs := make(chan os.Signal, 1)
+	// stop := make(chan struct{})
+	// signal.Notify(sigs, syscall.SIGTERM)
 
-	go func() {
-		<-sigs
-		c.handle_SIGTERM_signal(sigs)
-		os.Exit(0)
-	}()
+	// go func() {
+	// 	select {
+	// 	case <-sigs:
+	// 		c.handle_SIGTERM_signal(sigs)
+	// 		// os.Exit(0)
+	// 	case <-stop:
+	// 		log.Infof("Cierre forzado de goroutine de señal")
+	// 		return
+	// 	}
+	// }()
 
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
@@ -238,6 +242,7 @@ func (c *Client) StartClientLoop() {
 
 	c.runClientSession(handler)
 
+	// close(stop)
 	time.Sleep(500 * time.Millisecond)
 }
 
