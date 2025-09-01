@@ -78,7 +78,7 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) waitBeginLottery(handler *ConnectionHandler) (bool, error) {
 	response, err := handler.RecvAll()
 	if err != nil {
-		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+		log.Errorf("action: waitBeginLottery | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return false, err
 	}

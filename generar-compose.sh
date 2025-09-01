@@ -37,6 +37,7 @@ function configurate_server() {
     write_line "    entrypoint: python3 /main.py"
     write_line "    environment:"
     write_line "      - PYTHONUNBUFFERED=1"
+    write_line "      - CLIENTS=$clients"
     write_line "    networks:"
     write_line "      - testing_net"
     write_line "    volumes:"

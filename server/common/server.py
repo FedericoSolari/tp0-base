@@ -5,7 +5,7 @@ import sys
 from common import utils
 from common import protocol
 from common.connection import Connection
-import time
+import os
 
 
 class Server:
@@ -37,7 +37,12 @@ class Server:
         finishes, servers starts to accept new connections again
         """
         contador = 0
-        clientes = 1
+        clientes = os.getenv("CLIENTS")
+        if clientes is not None:
+            clientes = int(clientes)
+        else:
+            print("No se encontró la variable CLIENTS")
+            
         while self.shutdown == False:
             try:
                 conn = self.__accept_new_connection()
@@ -168,7 +173,7 @@ class Server:
         bets = utils.load_bets()
         for b in bets:
             if utils.has_won(b):
-                winner = self._client[b.agency -1]
+                winner = self._clients[b.agency -1]
                 winner.send_message(protocol.parseWinner(b))
                 logging.info(f"Bet agency: {b.agency} dni:{b.document} has won!")
 
