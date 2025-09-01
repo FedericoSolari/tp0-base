@@ -35,12 +35,22 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
+        contador = 0
+        clientes = 3
         while self.shutdown == False:
             try:
                 client_sock = self.__accept_new_connection()
+                contador +=1 # nuevo cliente
+
                 # Almaceno el socket del cliente
                 self._client_skts.append(client_sock)
                 self.__handle_client_connection(client_sock)
+                if contador == clientes:
+                    logging.info("RCIBI TODO ARRANCA LA LOTERIA")
+                    self.beginLottery()
+                    for skt in self._client_skts:
+                        logging.info("action: Cierro cliente")
+                        self.__close_client_socket(skt)
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
@@ -62,7 +72,7 @@ class Server:
                 break
                 
         if batch_ok:
-            logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+            # logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
             self.send_all(client_sock, protocol.success_message())
         else:
             logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
@@ -110,8 +120,8 @@ class Server:
              self.__process_client_messages(client_sock)
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
-        finally:
-            self.__close_client_socket(client_sock)
+        # finally:
+            # self.__close_client_socket(client_sock)
 
     def recv_all(self, client_sock, leftover=None):
         buffer = bytearray()
@@ -188,3 +198,21 @@ class Server:
            pass
         
         logging.info('Resources closed successfully')
+
+    def beginLottery(self):
+        logging.info(f'action: sorteo | result: success')
+        # notifico que comienza la loteria
+        for client in self._client_skts:
+            self.send_all(client, protocol.beginLottery())
+
+        bets = utils.load_bets()
+        ganadores = 0
+        for b in bets:
+            if utils.has_won(b):
+                ganadores+=1
+                self.send_all(self._client_skts[b.agency -1], protocol.parseWinner(b))
+                logging.info(f"Bet agemcy{b.agency} dni:{b.document} has won!")
+
+        for client in self._client_skts:
+            self.send_all(client, protocol.noMoreWinners())
+        # logging.info(f'action: sorteo | result: success')

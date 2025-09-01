@@ -39,6 +39,12 @@ def end_message() -> bytes:
 def error_message() -> bytes:
     return b"ERROR\n"
 
+def noMoreWinners() -> bytes:
+    return b"NoMoreWinners\n"
+
+def beginLottery() -> bytes:
+    return b"beginLottery\n"
+
 def isStartMessage(msg: str) -> bool:
     msg_str = msg.decode('utf-8')
     return msg_str.strip() == "START"
@@ -46,3 +52,6 @@ def isStartMessage(msg: str) -> bool:
 def isAllBetsDoneMessage(msg: str) -> bool:
     msg_str = msg.decode('utf-8')
     return msg_str.strip() == "END"
+
+def parseWinner(bet) -> bytes:
+    return f"Winner:{bet.document}\n".encode("utf-8")

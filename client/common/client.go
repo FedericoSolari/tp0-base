@@ -146,6 +146,69 @@ func (c *Client) SendFinish() error {
 	}
 	return nil
 }
+func (c *Client) waitBeginLottery(leftover []byte) (bool, []byte, error) {
+	response, leftover, err := c.recvall(leftover)
+	if err != nil {
+		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return false, leftover, err
+	}
+
+	if !IsBeginLotteryResponse(response) {
+		log.Infof("action: getWinners | result: Fail ")
+		return false, leftover, fmt.Errorf("el servidor respondio con fallo: %q", response)
+	}
+
+	return true, leftover, nil
+}
+
+func (c *Client) receiveWinners(leftover []byte) ([]string, error) {
+	var winners []string
+
+	for {
+		response, newleftover, err := c.recvall(leftover)
+		if err != nil {
+			log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
+				c.config.ID, err)
+			return winners, err
+		}
+		leftover = newleftover
+
+		if IsWinnerResponse(response) {
+			doc := ParseWinnerDocument(response)
+			log.Infof("action: Lottery | winner:%v", doc)
+		} else if IsNoMoreWinnerResponse(response) {
+			break
+		} else {
+			log.Infof("action: batch_de_apuestas_NO_enviado | result: Fail ")
+			return winners, fmt.Errorf("el servidor respondio con fallo: %q", response)
+		}
+	}
+
+	return winners, nil
+}
+
+func (c *Client) getWinners() error {
+	var leftover []byte
+	beginLottery := false
+
+	beginLottery, leftover, err := c.waitBeginLottery(leftover)
+	if err != nil {
+		return err
+	}
+
+	if !beginLottery {
+		return fmt.Errorf("La loteria no comenzo correctamente")
+	}
+
+	winners, err := c.receiveWinners(leftover)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: ${%d}", len(winners))
+	return nil
+}
 
 func (c *Client) ProcessBets(bets []*Bet) error {
 	var leftover []byte
@@ -261,6 +324,11 @@ func (c *Client) runClientSession() {
 
 	if err := c.SendFinish(); err != nil {
 		log.Infof("ERROR EN EL SENDFINISH")
+		return
+	}
+
+	if err := c.getWinners(); err != nil {
+		log.Infof("ERROR EN EL getwinners")
 		return
 	}
 
