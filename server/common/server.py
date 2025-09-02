@@ -24,7 +24,7 @@ class Server:
         # logging.info("action: handle_sigterm_signal | result: in progress")
         logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
-        self.clean_resourses()
+        self._server_socket.close()
         
     def run(self):
         """
@@ -44,6 +44,8 @@ class Server:
             self._client_skts.append(client_sock)
 
             self.__handle_client_connection(client_sock)
+
+        self.clean_resourses()
 
 
 
@@ -88,9 +90,6 @@ class Server:
         for client_sock in self._client_skts:
             logging.info('Closing client connection')
             client_sock.close()
-        
-        self._server_socket.close()
-        logging.info('Server connection closed')
         
         logging.info('Resources closed successfully')
         #sys.exit(0)
