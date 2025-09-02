@@ -11,8 +11,8 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+
         # Agrego time out para que no se qude esperando por siempre una conxion
-        #self._server_socket.settimeout(5.0)
         self._client_skts = []
         self.shutdown = False
 
@@ -24,7 +24,7 @@ class Server:
         # logging.info("action: handle_sigterm_signal | result: in progress")
         logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
-        self._server_socket.close()
+        # self._server_socket.close()
         
     def run(self):
         """
@@ -37,13 +37,22 @@ class Server:
         while self.shutdown == False:
             try:
                 client_sock = self.__accept_new_connection()
-            except socket.timeout:
-                # vuelvo a intentar obtener una conexion
-                continue
-            # Almaceno el socket del cliente
-            self._client_skts.append(client_sock)
 
-            self.__handle_client_connection(client_sock)
+                self._client_skts.append(client_sock)
+
+                self.__handle_client_connection(client_sock)
+
+                if client_sock in self._client_skts:
+                        self._client_skts.remove(client_sock)
+
+            except socket.error:
+                if self.shutdown:
+                    break
+                else:
+                    logging.error("action: __accept_new_connection | result: fail | error: socket error")
+            except Exception as e:
+                if not self.shutdown:
+                    logging.error(f"action: server | result: fail | error: {e}")
 
         self.clean_resourses()
 
@@ -67,8 +76,8 @@ class Server:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
-        # Elimino el socket almacenado
-        self._client_skts.remove(client_sock)
+            # Elimino el socket almacenado
+            self._client_skts.remove(client_sock)
 
     def __accept_new_connection(self):
         """
@@ -88,8 +97,14 @@ class Server:
         logging.info('Received SIGTERM signal')
 
         for client_sock in self._client_skts:
-            logging.info('Closing client connection')
-            client_sock.close()
+            try:
+                logging.info('Closing client connection')
+                client_sock.close()
+            except Exception as e:
+                logging.error(f"action: clean_resourses | result: fail | msg: error closing client | error: {e}")
+
+        # vacio la lista de clientes    
+        self._client_skts.clear()
         
         logging.info('Resources closed successfully')
         #sys.exit(0)

@@ -41,6 +41,7 @@ func NewClient(config ClientConfig) *Client {
 	go func() {
 		<-sigs
 		client.shutdown = true
+		log.Infof("action: sigterm_received | result: in_progress | client_id: %v", client.config.ID)
 		client.handle_SIGTERM_signal(sigs)
 	}()
 
@@ -58,6 +59,7 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
+		return err
 	}
 	c.conn = conn
 	return nil
@@ -75,7 +77,13 @@ func (c *Client) StartClientLoop() {
 		}
 
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+		if err := c.createClientSocket(); err != nil {
+			log.Errorf("action: create_client_socket | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
 
 		// TODO: Modify the send to avoid short-write
 		fmt.Fprintf(
@@ -88,6 +96,9 @@ func (c *Client) StartClientLoop() {
 		c.conn.Close()
 
 		if err != nil {
+			if c.shutdown {
+				break
+			}
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
