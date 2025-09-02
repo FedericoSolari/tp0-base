@@ -42,7 +42,13 @@ func NewClient(config ClientConfig) *Client {
 		<-sigs
 		client.shutdown = true
 		log.Infof("action: sigterm_received | result: in_progress | client_id: %v", client.config.ID)
-		client.handle_SIGTERM_signal(sigs)
+		// client.handle_SIGTERM_signal(sigs)
+		if client.conn != nil {
+			err := client.conn.Close()
+			if err == nil {
+				log.Infof("action: close_connection | result: success | client_id: %v", client.config.ID)
+			}
+		}
 	}()
 
 	return client
@@ -118,16 +124,16 @@ func (c *Client) StartClientLoop() {
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
-func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
-	if c.conn != nil {
-		err := c.conn.Close()
-		if err == nil {
-			log.Infof("action: close_connection | result: success | client_id: %v", c.config.ID)
-		}
-	}
+// func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
+// 	if c.conn != nil {
+// 		err := c.conn.Close()
+// 		if err == nil {
+// 			log.Infof("action: close_connection | result: success | client_id: %v", c.config.ID)
+// 		}
+// 	}
 
-	if sigs != nil {
-		close(sigs)
-		log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
-	}
-}
+// 	if sigs != nil {
+// 		close(sigs)
+// 		log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
+// 	}
+// }
