@@ -131,7 +131,7 @@ func (c *Client) getWinners(handler *ConnectionHandler) error {
 		return err
 	}
 
-	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: ${%d}", len(winners))
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 	return nil
 }
 
