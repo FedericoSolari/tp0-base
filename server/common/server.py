@@ -175,7 +175,7 @@ class Server:
             if utils.has_won(b):
                 winner = self._clients[b.agency -1]
                 winner.send_message(protocol.parseWinner(b))
-                logging.info(f"Bet agency: {b.agency} dni:{b.document} has won!")
+                #logging.info(f"Bet agency: {b.agency} dni:{b.document} has won!")
 
         for conn in self._clients:
             conn.send_message(protocol.noMoreWinners())
