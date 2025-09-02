@@ -24,7 +24,7 @@ class Server:
         # logging.info("action: handle_sigterm_signal | result: in progress")
         logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
-        # self._server_socket.close()
+        self._server_socket.close()
         
     def run(self):
         """
