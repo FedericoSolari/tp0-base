@@ -235,7 +235,7 @@ func (c *Client) StartClientLoop() {
 
 	c.runClientSession()
 
-	time.Sleep(500 * time.Millisecond)
+	//time.Sleep(500 * time.Millisecond)
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
