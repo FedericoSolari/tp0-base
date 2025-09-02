@@ -12,7 +12,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         # Agrego time out para que no se qude esperando por siempre una conxion
-        self._server_socket.settimeout(5.0)
+        #self._server_socket.settimeout(5.0)
         self._client_skts = []
         self.shutdown = False
 
@@ -93,4 +93,4 @@ class Server:
         logging.info('Server connection closed')
         
         logging.info('Resources closed successfully')
-        sys.exit(0)
+        #sys.exit(0)
