@@ -103,9 +103,9 @@ func (c *Client) receiveWinners(handler *ConnectionHandler) ([]string, error) {
 		if IsWinnerResponse(response) {
 			doc := ParseWinnerDocument(response)
 			winners = append(winners, doc)
-			log.Infof("action: Lottery | winner:%v", doc)
+			//log.Infof("action: Lottery | winner:%v", doc)
 		} else if IsNoMoreWinnerResponse(response) {
-			log.Infof("action: NO MORE WINNERS")
+			//log.Infof("action: NO MORE WINNERS")
 			break
 		} else {
 			log.Infof("action: RECEIVE_WINNERS | result: Fail ")
@@ -243,7 +243,7 @@ func (c *Client) StartClientLoop() {
 	c.runClientSession(handler)
 
 	// close(stop)
-	time.Sleep(500 * time.Millisecond)
+	//time.Sleep(500 * time.Millisecond)
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
