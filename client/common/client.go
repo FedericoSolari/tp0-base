@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -42,82 +41,19 @@ func NewClient(config ClientConfig) *Client {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientSocket() error {
+func (c *Client) createClientSocket() (*ConnectionHandler, error) {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		log.Criticalf(
+		log.Errorf(
 			"action: connect | result: fail | client_id: %v | error: %v",
 			c.config.ID,
 			err,
 		)
-		return err
+		return nil, err
 	}
+
 	c.conn = conn
-	return nil
-}
-
-func (c *Client) sendall(data []byte) error {
-	if c.conn == nil {
-		return fmt.Errorf("no hay una conexion abierta")
-	}
-
-	total := len(data)
-	sent := 0
-
-	// fmt.Printf(">>> Enviando (%d bytes): %q\n", len(data), data)
-
-	for sent < total {
-		n, err := c.conn.Write(data[sent:])
-		if err != nil {
-			return err
-		}
-		sent += n
-	}
-
-	return nil
-}
-
-func (c *Client) recvall(buffer []byte) (string, []byte, error) {
-	if c.conn == nil {
-		return "", nil, fmt.Errorf("no hay una conexion abierta")
-	}
-
-	// si buffer es nil, inicializamos uno nuevo
-	if buffer == nil {
-		buffer = make([]byte, 0, 1024)
-	}
-
-	tmp := make([]byte, 256)
-
-	for {
-		// busco un \n en el buffer acumulado
-		if line, rest, found := extractLine(buffer); found {
-			return line, rest, nil
-		}
-
-		// leo datos del socket
-		bytes_leidos, err := c.conn.Read(tmp)
-		if err != nil {
-			return handleReadError(err, buffer)
-		}
-
-		if bytes_leidos == 0 {
-			if len(buffer) > 0 { // si quedo algo en el buffer lo devuelvo
-				return string(buffer), nil, nil
-			}
-			return "", nil, fmt.Errorf("socket cerrado")
-		}
-
-		buffer = append(buffer, tmp[:bytes_leidos]...)
-	}
-}
-
-// busca un '\n' en el buffer y devuleve hasta el \n y lo que esta despues
-func extractLine(buffer []byte) (line string, rest []byte, found bool) {
-	if idx := bytes.IndexByte(buffer, '\n'); idx != -1 {
-		return string(buffer[:idx+1]), buffer[idx+1:], true
-	}
-	return "", buffer, false
+	return NewConnectionHandler(conn), nil
 }
 
 func handleReadError(err error, buffer []byte) (string, []byte, error) {
@@ -127,9 +63,8 @@ func handleReadError(err error, buffer []byte) (string, []byte, error) {
 	return "", buffer, fmt.Errorf("error leyendo del socket: %w", err)
 }
 
-func (c *Client) SendStart() error {
-	err := c.sendall([]byte(startMessage()))
-	if err != nil {
+func (c *Client) SendStart(handler *ConnectionHandler) error {
+	if err := handler.SendAll([]byte(startMessage())); err != nil {
 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return err
@@ -137,29 +72,29 @@ func (c *Client) SendStart() error {
 	return nil
 }
 
-func (c *Client) SendFinish() error {
-	err := c.sendall([]byte(AllBetsDone()))
-	if err != nil {
+func (c *Client) SendFinish(handler *ConnectionHandler) error {
+
+	if err := handler.SendAll([]byte(AllBetsDone())); err != nil {
 		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return err
 	}
 	return nil
+
 }
 
-func (c *Client) ProcessBets(bets []*Bet) error {
-	var leftover []byte
+func (c *Client) ProcessBets(handler *ConnectionHandler, bets []*Bet) error {
 
 	msg := FormatBatchMessage(bets)
 
-	err := c.sendall([]byte(msg))
+	err := handler.SendAll([]byte(msg))
 	if err != nil {
 		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return err
 	}
 
-	response, leftover, err := c.recvall(leftover)
+	response, err := handler.RecvAll()
 	if err != nil {
 		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
@@ -173,7 +108,7 @@ func (c *Client) ProcessBets(bets []*Bet) error {
 	return nil
 }
 
-func (c *Client) ProcessAllBets() error {
+func (c *Client) ProcessAllBets(handler *ConnectionHandler) error {
 	loader, err := NewBetLoader("/data/agency.csv", c.config.BatchMaxAmount)
 	if err != nil {
 		log.Errorf("action: load_bets | result: fail | client_id: %v | error: %v",
@@ -193,7 +128,7 @@ func (c *Client) ProcessAllBets() error {
 			return err
 		}
 
-		err = c.ProcessBets(batch)
+		err = c.ProcessBets(handler, batch)
 		if err != nil {
 			return err
 		}
@@ -223,19 +158,13 @@ func (c *Client) StartClientLoop() {
 		os.Exit(0)
 	}()
 
-	err := c.createClientSocket()
+	handler, err := c.createClientSocket()
 	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
 		return
 	}
-
-	//  NO importa como termine la funcion al final libero todo
 	defer c.close_connections()
 
-	c.runClientSession()
-
-	//time.Sleep(500 * time.Millisecond)
+	c.runClientSession(handler)
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
@@ -248,28 +177,30 @@ func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
 	log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
 }
 
-func (c *Client) runClientSession() {
-	if err := c.SendStart(); err != nil {
+func (c *Client) runClientSession(handler *ConnectionHandler) {
+	if err := c.SendStart(handler); err != nil {
 		log.Infof("ERROR EN EL SENDSTART")
 		return
 	}
 
-	if err := c.ProcessAllBets(); err != nil {
+	if err := c.ProcessAllBets(handler); err != nil {
 		log.Infof("ERROR EN EL PROCESSALLBETS")
 		return
 	}
 
-	if err := c.SendFinish(); err != nil {
+	if err := c.SendFinish(handler); err != nil {
 		log.Infof("ERROR EN EL SENDFINISH")
 		return
 	}
 
 	// Espero que el server haya recibido nuestro final para poder cerrar
-	response, _, err := c.recvall(nil)
-	if !IsEndResponse(response) {
-		log.Infof("action: recv_finish_message | result: fail_response")
-	}
+	response, err := handler.RecvAll()
 	if err != nil {
 		log.Errorf("action: recv_finish_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
+		return
+	}
+
+	if !IsEndResponse(response) {
+		log.Infof("action: recv_finish_message | result: fail_response | response: %q", response)
 	}
 }
