@@ -41,7 +41,7 @@ function configurate_server() {
     write_line "    networks:"
     write_line "      - testing_net"
     write_line "    volumes:"
-    write_line "      - ./server/config.ini:/server/config.ini"
+    write_line "      - ./server/config.ini:/config.ini"
 }
 
 function configurate_client() {
