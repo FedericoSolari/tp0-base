@@ -35,22 +35,20 @@ func NewClient(config ClientConfig) *Client {
 	return client
 }
 
-// CreateClientSocket Initializes client socket. In case of
-// failure, error is printed in stdout/stderr and exit 1
-// is returned
-// func (c *Client) createClientSocket() *ConnectionHandler ,error {
-// 	conn, err := net.Dial("tcp", c.config.ServerAddress)
-// 	if err != nil {
-// 		log.Criticalf(
-// 			"action: connect | result: fail | client_id: %v | error: %v",
-// 			c.config.ID,
-// 			err,
-// 		)
-// 		return nil, err
-// 	}
-// 	c.conn = conn
-// 	return nil
-// }
+func (c *Client) createClientSocket() (*ConnectionHandler, error) {
+	conn, err := net.Dial("tcp", c.config.ServerAddress)
+	if err != nil {
+		log.Errorf(
+			"action: connect | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return nil, err
+	}
+
+	c.conn = conn
+	return NewConnectionHandler(conn), nil
+}
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
@@ -70,22 +68,18 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
+	handler, err := c.createClientSocket()
 	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v", c.config.ID, err)
 		return
 	}
-
 	defer func() {
-		if conn != nil {
-			err := conn.Close()
+		if c.conn != nil {
+			err := c.conn.Close()
 			if err != nil {
 				log.Errorf("Error cerrando la conexión: %v", err)
 			}
 		}
 	}()
-
-	handler := NewConnectionHandler(conn)
 
 	msg := FormatBetMessage(bet)
 
