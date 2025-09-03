@@ -15,8 +15,9 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
             # Agrego time out para que no se qude esperando por siempre una conxion
-        self._server_socket.settimeout(5.0)
+        # self._server_socket.settimeout(5.0)
         self._clients = []
+        self._clients_agancy = {}
         self.shutdown = False
 
         # Capturo el sigterm para hacer el handeleo 
@@ -68,10 +69,21 @@ class Server:
         self.clean_resourses()
 
 
+    def __relate_conn_with_agency(self, conn, bets):
+        agency_number = bets[0].agency  
+
+        # Solo asigno si no esta
+        if conn not in self._clients_agancy:
+            self._clients_agancy[conn] = agency_number
+            # logging.info(f"action: registrar_agencia | conn: {conn} | agencia: {agency_number}")
+
+
+
     def __handle_bets(self, conn, msg):
         batch_ok = True
 
         bets = protocol.parse_bet_message(msg)
+        self.__relate_conn_with_agency(conn, bets)
         for bet in bets:
             try:
                 utils.store_bets([bet])
@@ -116,6 +128,8 @@ class Server:
         finally:
             if conn in self._clients:
                 self._clients.remove(conn)
+            if conn in self._clients_agency:
+                del self._clients_agency[conn]
             
     def __handle_client_connection(self, conn):
         """
@@ -154,7 +168,9 @@ class Server:
                 client_sock.close()
             except OSError as e:
                 logging.error(f"Error cerrando client socket: {e}")
+        
         self._client_skts.clear()
+        self._clients_agancy.clear()
         
         try:
             self._server_socket.close()
@@ -173,7 +189,7 @@ class Server:
         bets = utils.load_bets()
         for b in bets:
             if utils.has_won(b):
-                winner = self._clients[b.agency -1]
+                winner = self._clients_agancy[b.agency]
                 winner.send_message(protocol.parseWinner(b))
                 #logging.info(f"Bet agency: {b.agency} dni:{b.document} has won!")
 
