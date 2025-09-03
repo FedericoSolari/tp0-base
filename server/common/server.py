@@ -1,10 +1,9 @@
 import socket
 import logging
 import signal
-import sys
 from common import utils
 from common import protocol
-import datetime
+from common.connection import Connection
 
 
 class Server:
@@ -15,7 +14,7 @@ class Server:
         self._server_socket.listen(listen_backlog)
         # Agrego time out para que no se qude esperando por siempre una conxion
         self._server_socket.settimeout(5.0)
-        self._client_skts = []
+        self._clients = []
         self.shutdown = False
 
         # Capturo el sigterm para hacer el handeleo 
@@ -25,7 +24,6 @@ class Server:
 
         logging.info("action: handle_sigterm_signal | result: success")
         self.shutdown = True
-        self.clean_resourses()
         
     def run(self):
         """
@@ -37,17 +35,20 @@ class Server:
         """
         while self.shutdown == False:
             try:
-                client_sock = self.__accept_new_connection()
+                conn = self.__accept_new_connection()
                 # Almaceno el socket del cliente
-                self._client_skts.append(client_sock)
-                self.__handle_client_connection(client_sock)
+                self._clients.append(conn)
+
+                self.__handle_client_connection(conn)
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
 
+        self.clean_resourses()
 
 
-    def __handle_client_connection(self, client_sock):
+
+    def __handle_client_connection(self, conn):
         """
         Read message from a specific client socket and closes the socket
 
@@ -56,14 +57,14 @@ class Server:
         """
         try:
             # recibo todo y decodifico el mensaje
-            msg = self.recv_all(client_sock)
+            msg = conn.recv_all()
 
             bet = protocol.parse_bet_message(msg)
             if bet:
                 try:
                     utils.store_bets([bet])
                     logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
-                    client_sock.sendall(protocol.success_message())
+                    conn.send_message(protocol.success_message())
                 except Exception as e:
                     logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
                     
@@ -71,45 +72,45 @@ class Server:
         except OSError as e:
             logging.error("action: __handle_client_connection | result: fail | error: {e}")
         finally:
-            client_sock.close()
+            conn.close()
         # Elimino el socket almacenado
-        self._client_skts.remove(client_sock)
+        self._clients.remove(conn)
 
-    def recv_all(self, client_sock):
+    # def recv_all(self, client_sock):
 
-        buffer = bytearray()
-        found = False
-        while found == False:
-            chunk = client_sock.recv(256)
-            if not chunk:
-                logging.error(f'action: Error en la lectura del mensaje')
-                break
-            buffer.extend(chunk)
+    #     buffer = bytearray()
+    #     found = False
+    #     while found == False:
+    #         chunk = client_sock.recv(256)
+    #         if not chunk:
+    #             logging.error(f'action: Error en la lectura del mensaje')
+    #             break
+    #         buffer.extend(chunk)
             
-            # busco el \n que significa el fin segun el protoolo definido
-            if b'\n' in chunk:
-                found = True
+    #         # busco el \n que significa el fin segun el protoolo definido
+    #         if b'\n' in chunk:
+    #             found = True
             
-        return bytes(buffer)
+    #     return bytes(buffer)
     
-    def send_all(skt, data: bytes):
-        """
-        Envía todos los bytes del mensaje por el socket.
-        Se asegura que todo se envíe, evitando short-write.
-        data debe contener el '\n' al final para indicar fin de mensaje.
-        """
-        total_sent = 0
-        total_len = len(data)
+    # def send_all(skt, data: bytes):
+    #     """
+    #     Envía todos los bytes del mensaje por el socket.
+    #     Se asegura que todo se envíe, evitando short-write.
+    #     data debe contener el '\n' al final para indicar fin de mensaje.
+    #     """
+    #     total_sent = 0
+    #     total_len = len(data)
 
-        while total_sent < total_len:
-            try:
-                sent = skt.send(data[total_sent:])
-                if sent == 0:
-                    raise RuntimeError("socket connection broken")
-                total_sent += sent
-            except OSError as e:
-                logging.error(f"action: send_all | result: fail | error: {e}")
-                raise
+    #     while total_sent < total_len:
+    #         try:
+    #             sent = skt.send(data[total_sent:])
+    #             if sent == 0:
+    #                 raise RuntimeError("socket connection broken")
+    #             total_sent += sent
+    #         except OSError as e:
+    #             logging.error(f"action: send_all | result: fail | error: {e}")
+    #             raise
 
     def __accept_new_connection(self):
         """
@@ -119,21 +120,27 @@ class Server:
         # Then connection created is printed and returned
         """
 
-        # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
-        c, addr = self._server_socket.accept()
+
+        sock, addr = self._server_socket.accept()
+
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        return c
+
+        conn = Connection(sock, addr)
+        return conn
 
     def clean_resourses(self):
         logging.info('Received SIGTERM signal')
 
-        for client_sock in self._client_skts:
-            logging.info('Closing client connection')
-            client_sock.close()
+        for client_sock in self._clients:
+            try:
+                logging.info('Closing client connection')
+                client_sock.close()
+            except OSError as e:
+                logging.error(f"Error cerrando client socket: {e}")
         
-        self._server_socket.close()
-        logging.info('Server connection closed')
-        
-        logging.info('Resources closed successfully')
-        sys.exit(0)
+        self._clients.clear()
+        try:
+            self._server_socket.close()
+        except OSError as e:
+           pass
