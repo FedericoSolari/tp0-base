@@ -74,8 +74,8 @@ class Server:
 
         # Solo asigno si no esta
         if conn not in self._clients_agancy:
-            self._clients_agancy[conn] = agency_number
-            # logging.info(f"action: registrar_agencia | conn: {conn} | agencia: {agency_number}")
+            self._clients_agancy[agency_number] = conn
+            logging.info(f"action: registrar_agencia | conn: {conn} | agencia: {agency_number}")
 
 
 
@@ -128,8 +128,8 @@ class Server:
         finally:
             if conn in self._clients:
                 self._clients.remove(conn)
-            if conn in self._clients_agency:
-                del self._clients_agency[conn]
+            if conn in self._clients_agancy:
+                del self._clients_agancy[conn]
             
     def __handle_client_connection(self, conn):
         """
@@ -189,9 +189,9 @@ class Server:
         bets = utils.load_bets()
         for b in bets:
             if utils.has_won(b):
+                logging.info(f"Bet agency: {b.agency}")
                 winner = self._clients_agancy[b.agency]
                 winner.send_message(protocol.parseWinner(b))
-                #logging.info(f"Bet agency: {b.agency} dni:{b.document} has won!")
 
         for conn in self._clients:
             conn.send_message(protocol.noMoreWinners())
