@@ -57,7 +57,7 @@ class Server:
                     # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
                     self.beginLottery()
                     for c in self._clients:
-                        logging.info("action: Cierro cliente")
+                        #logging.info("action: Cierro cliente")
                         self.__close_client(c)
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
