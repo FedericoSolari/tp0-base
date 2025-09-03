@@ -62,20 +62,23 @@ class Server:
                 t.start()
                 self._client_threads.append(t)
 
-                if self._done_clients >= self._expected_clients:
-                    logging.info("action: received_all_clients | result: success | waiting for done")
-                    self._all_done.wait()
+                # if self._done_clients >= self._expected_clients:
+                self._all_done.wait()
+                logging.info("action: received_all_clients | result: success | waiting for done")
 
-                    self.join_client_threads()
+                logging.info("action: join_clients | result: in_progress | ")
 
-                    # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
-                    self.beginLottery()
-                    for c in self._clients:
-                        #logging.info("action: Cierro cliente")
-                        self.__close_client(c)
+                self.join_client_threads()
+                logging.info("action: join_clients | result: success | ")
 
-                    # no deberia recibir mas clientes, salgo
-                    break 
+                # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
+                self.beginLottery()
+                for c in self._clients:
+                    #logging.info("action: Cierro cliente")
+                    self.__close_client(c)
+
+                # no deberia recibir mas clientes, salgo
+                break 
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
