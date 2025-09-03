@@ -194,8 +194,6 @@ func (c *Client) close_connections() {
 		err := c.conn.Close()
 		if err != nil {
 			log.Errorf("Error cerrando la conexión: %v", err)
-		} else {
-			log.Infof("Conexión cerrada correctamente")
 		}
 	}
 }
@@ -229,8 +227,6 @@ func (c *Client) StartClientLoop() {
 			err := conn.Close()
 			if err != nil {
 				log.Errorf("Error cerrando la conexión: %v", err)
-			} else {
-				log.Infof("Conexión cerrada correctamente")
 			}
 		}
 	}()
