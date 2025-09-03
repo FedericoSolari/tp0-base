@@ -65,13 +65,13 @@ class Server:
                 self._client_threads.append(t)
 
                 if conectados >= self._expected_clients:
-                    logging.info("action: received_all_clients | result: success | waiting for done")
+                    # logging.info("action: received_all_clients | result: success | waiting for done")
                     self._all_done.wait()
 
-                    logging.info("action: join_clients | result: in_progress | ")
+                    # logging.info("action: join_clients | result: in_progress | ")
 
                     self.join_client_threads()
-                    logging.info("action: join_clients | result: success | ")
+                    # logging.info("action: join_clients | result: success | ")
 
                     # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
                     self.beginLottery()
@@ -244,9 +244,9 @@ class Server:
             # actualizo que termino un cliente
             with self._done_lock:
                 self._done_clients += 1
-                logging.info(f"action: client_finished | result: in_progress | done_clients: {self._done_clients}")
+                # logging.info(f"action: client_finished | result: in_progress | done_clients: {self._done_clients}")
                 if self._done_clients >= self._expected_clients:
-                    logging.info("action: all_expected_clients_done | result: success")
+                    # logging.info("action: all_expected_clients_done | result: success")
                     self._all_done.set()
 
     def join_client_threads(self, timeout=None):
@@ -254,13 +254,13 @@ class Server:
         Hace join() de todos los threads de clientes que estén en self._client_threads.
         Si timeout != None, pasa ese timeout a cada join individual.
         """
-        logging.info("action: join_client_threads | result: in_progress")
+        # logging.info("action: join_client_threads | result: in_progress")
         for t in self._client_threads:
             try:
                 t.join(timeout)
-                logging.info(f"action: join_client_threads | thread {t.name} joined")
+                # logging.info(f"action: join_client_threads | thread {t.name} joined")
             except RuntimeError as e:
                 logging.error(f"action: join_client_threads | result: fail | error: {e}")
         # limpiar la lista de threads una vez se hizo join
         self._client_threads.clear()
-        logging.info("action: join_client_threads | result: success")
+        # logging.info("action: join_client_threads | result: success")
