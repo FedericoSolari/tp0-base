@@ -50,9 +50,11 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
+        conectados = 0
         while self.shutdown == False:
             try:
                 conn = self.__accept_new_connection()
+                conectados+=1
 
                 # Almaceno el Connection del cliente
                 with self._clients_lock:
@@ -62,23 +64,23 @@ class Server:
                 t.start()
                 self._client_threads.append(t)
 
-                # if self._done_clients >= self._expected_clients:
-                self._all_done.wait()
-                logging.info("action: received_all_clients | result: success | waiting for done")
+                if conectados >= self._expected_clients:
+                    logging.info("action: received_all_clients | result: success | waiting for done")
+                    self._all_done.wait()
 
-                logging.info("action: join_clients | result: in_progress | ")
+                    logging.info("action: join_clients | result: in_progress | ")
 
-                self.join_client_threads()
-                logging.info("action: join_clients | result: success | ")
+                    self.join_client_threads()
+                    logging.info("action: join_clients | result: success | ")
 
-                # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
-                self.beginLottery()
-                for c in self._clients:
-                    #logging.info("action: Cierro cliente")
-                    self.__close_client(c)
+                    # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
+                    self.beginLottery()
+                    for c in self._clients:
+                        #logging.info("action: Cierro cliente")
+                        self.__close_client(c)
 
-                # no deberia recibir mas clientes, salgo
-                break 
+                    # no deberia recibir mas clientes, salgo
+                    break 
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
