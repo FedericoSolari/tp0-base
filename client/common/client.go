@@ -56,13 +56,6 @@ func (c *Client) createClientSocket() (*ConnectionHandler, error) {
 	return NewConnectionHandler(conn), nil
 }
 
-func handleReadError(err error, buffer []byte) (string, []byte, error) {
-	if err == io.EOF {
-		return "", buffer, io.EOF
-	}
-	return "", buffer, fmt.Errorf("error leyendo del socket: %w", err)
-}
-
 func (c *Client) SendStart(handler *ConnectionHandler) error {
 	if err := handler.SendAll([]byte(startMessage())); err != nil {
 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
@@ -167,7 +160,7 @@ func (c *Client) StartClientLoop() {
 	c.runClientSession(handler)
 }
 
-func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
+func (c *Client) handle_SIGTERM_signal() {
 	if c.conn != nil {
 		err := c.conn.Close()
 		if err == nil {
