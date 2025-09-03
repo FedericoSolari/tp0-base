@@ -1,8 +1,6 @@
 package common
 
 import (
-	"bytes"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -40,63 +38,19 @@ func NewClient(config ClientConfig) *Client {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-	}
-	c.conn = conn
-	return nil
-}
-
-func (c *Client) sendall(data []byte) error {
-	if c.conn == nil {
-		return fmt.Errorf("no hay una conexion abierta")
-	}
-
-	total := len(data)
-	sent := 0
-
-	for sent < total {
-		n, err := c.conn.Write(data[sent:])
-		if err != nil {
-			return err
-		}
-		sent += n
-	}
-
-	return nil
-}
-
-func (c *Client) recvall() (string, error) {
-	if c.conn == nil {
-		return "", fmt.Errorf("no hay una conexion abierta")
-	}
-
-	buffer := make([]byte, 0, 1024)
-	tmp := make([]byte, 256)
-	found := false
-	for !found {
-		//
-		n, err := c.conn.Read(tmp)
-		if err != nil {
-			return "", err
-		}
-
-		buffer = append(buffer, tmp[:n]...)
-
-		// verifico si ya lei el '\n'
-		if bytes.Contains(tmp[:n], []byte{'\n'}) {
-			found = true
-		}
-	}
-
-	return string(buffer), nil
-}
+// func (c *Client) createClientSocket() *ConnectionHandler ,error {
+// 	conn, err := net.Dial("tcp", c.config.ServerAddress)
+// 	if err != nil {
+// 		log.Criticalf(
+// 			"action: connect | result: fail | client_id: %v | error: %v",
+// 			c.config.ID,
+// 			err,
+// 		)
+// 		return nil, err
+// 	}
+// 	c.conn = conn
+// 	return nil
+// }
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
@@ -116,24 +70,33 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	err = c.createClientSocket()
+	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID, err)
+		log.Errorf("action: connect | result: fail | client_id: %v | error: %v", c.config.ID, err)
 		return
 	}
-	defer c.conn.Close() // Al salir de la func cierro el skt
+
+	defer func() {
+		if conn != nil {
+			err := conn.Close()
+			if err != nil {
+				log.Errorf("Error cerrando la conexión: %v", err)
+			}
+		}
+	}()
+
+	handler := NewConnectionHandler(conn)
 
 	msg := FormatBetMessage(bet)
 
-	err = c.sendall([]byte(msg))
+	err = handler.SendAll([]byte(msg))
 	if err != nil {
 		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
 		return
 	}
 
-	response, err := c.recvall()
+	response, err := handler.RecvAll()
 	if err != nil {
 		log.Errorf("action: recv_response | result: fail | client_id: %v | error: %v",
 			c.config.ID, err)
