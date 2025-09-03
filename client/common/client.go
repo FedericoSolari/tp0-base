@@ -72,14 +72,7 @@ func (c *Client) StartClientLoop() {
 	if err != nil {
 		return
 	}
-	defer func() {
-		if c.conn != nil {
-			err := c.conn.Close()
-			if err != nil {
-				log.Errorf("Error cerrando la conexión: %v", err)
-			}
-		}
-	}()
+	defer c.close_connections()
 
 	msg := FormatBetMessage(bet)
 
@@ -115,5 +108,14 @@ func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
 	if sigs != nil {
 		close(sigs)
 		log.Infof("action: close_client | result: success | client_id: %v", c.config.ID)
+	}
+}
+
+func (c *Client) close_connections() {
+	if c.conn != nil {
+		err := c.conn.Close()
+		if err != nil {
+			log.Errorf("Error cerrando la conexión: %v", err)
+		}
 	}
 }
