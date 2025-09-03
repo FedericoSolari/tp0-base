@@ -6,6 +6,8 @@ from common import utils
 from common import protocol
 from common.connection import Connection
 import os
+import threading
+
 
 
 class Server:
@@ -19,6 +21,17 @@ class Server:
         self._clients = []
         self._clients_agancy = {}
         self.shutdown = False
+
+        self._client_threads = []   
+        self._done_lock = threading.Lock()
+        self._all_done = threading.Event()
+        self._done_clients = 0
+
+        self._agency_lock = threading.Lock()
+        self._clients_lock = threading.Lock()
+        self._bets_lock = threading.Lock()
+
+        self._expected_clients = int(os.getenv("CLIENTS"))
 
         # Capturo el sigterm para hacer el handeleo 
         signal.signal(signal.SIGTERM, self.handle_sigterm_signal)
@@ -37,29 +50,32 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
-        contador = 0
-        clientes = os.getenv("CLIENTS")
-        if clientes is not None:
-            clientes = int(clientes)
-        else:
-            print("No se encontró la variable CLIENTS")
-
         while self.shutdown == False:
             try:
                 conn = self.__accept_new_connection()
-                contador += 1
 
                 # Almaceno el Connection del cliente
-                self._clients.append(conn)
+                with self._clients_lock:
+                    self._clients.append(conn)
 
-                self.__handle_client_connection(conn)
+                t = threading.Thread(target=self._client_thread_wrapper, args=(conn,))
+                t.start()
+                self._client_threads.append(t)
 
-                if contador == clientes:
+                if self._done_clients >= self._expected_clients:
+                    logging.info("action: received_all_clients | result: success | waiting for done")
+                    self._all_done.wait()
+
+                    self.join_client_threads()
+
                     # logging.info("RECIBI TODO ARRANCA LA LOTERIA")
                     self.beginLottery()
                     for c in self._clients:
                         #logging.info("action: Cierro cliente")
                         self.__close_client(c)
+
+                    # no deberia recibir mas clientes, salgo
+                    break 
             except socket.timeout:
                 # vuelvo a intentar obtener una conexion
                 continue
@@ -72,10 +88,11 @@ class Server:
     def __relate_conn_with_agency(self, conn, bets):
         agency_number = bets[0].agency  
 
-        # Solo asigno si no esta
-        if conn not in self._clients_agancy:
-            self._clients_agancy[agency_number] = conn
-            # logging.info(f"action: registrar_agencia | conn: {conn} | agencia: {agency_number}")
+        with self._agency_lock:
+            # Solo asigno si no esta
+            if conn not in self._clients_agancy:
+                self._clients_agancy[agency_number] = conn
+                # logging.info(f"action: registrar_agencia | conn: {conn} | agencia: {agency_number}")
 
 
 
@@ -86,7 +103,8 @@ class Server:
         self.__relate_conn_with_agency(conn, bets)
         for bet in bets:
             try:
-                utils.store_bets([bet])
+                with self._bets_lock:
+                    utils.store_bets([bet])
             except Exception:
                 batch_ok = False
                 break
@@ -96,7 +114,7 @@ class Server:
             conn.send_message(protocol.success_message())
         else:
             logging.info(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-            self.send_message(protocol.error_message())
+            conn.send_message(protocol.error_message())
 
     def __process_client_messages(self, conn):
 
@@ -126,10 +144,12 @@ class Server:
         except OSError as e:
             logging.error(f"Error cerrando socket cliente: {e}")
         finally:
-            if conn in self._clients:
-                self._clients.remove(conn)
-            if conn in self._clients_agancy:
-                del self._clients_agancy[conn]
+            with self._clients_lock:
+                if conn in self._clients:
+                    self._clients.remove(conn)
+            with self._agency_lock:
+                if conn in self._clients_agancy:
+                    del self._clients_agancy[conn]
             
     def __handle_client_connection(self, conn):
         """
@@ -162,15 +182,18 @@ class Server:
     def clean_resourses(self):
         logging.info('Received SIGTERM signal')
 
-        for client_sock in self._client_skts:
-            try:
-                logging.info('Closing client connection')
-                client_sock.close()
-            except OSError as e:
-                logging.error(f"Error cerrando client socket: {e}")
+        with self._clients_lock:
+            for client_sock in self._clients:
+                try:
+                    logging.info('Closing client connection')
+                    client_sock.close()
+                except OSError as e:
+                    logging.error(f"Error cerrando client socket: {e}")
+            
+            self._clients.clear()
         
-        self._client_skts.clear()
-        self._clients_agancy.clear()
+        with self._agency_lock:
+            self._clients_agancy.clear()
         
         try:
             self._server_socket.close()
@@ -180,19 +203,59 @@ class Server:
         logging.info('Resources closed successfully')
 
     def beginLottery(self):
+        # PONGO LOCK SOLO POR LAS DUDAS
         logging.info(f'action: sorteo | result: success')
         
         # notifico que comienza la loteria
-        for conn in self._clients:
-            conn.send_message(protocol.beginLottery())
+        with self._clients_lock:
+            for conn in self._clients:
+                conn.send_message(protocol.beginLottery())
 
-        bets = utils.load_bets()
-        for b in bets:
-            if utils.has_won(b):
-                # logging.info(f"Bet agency: {b.agency}")
-                winner = self._clients_agancy[b.agency]
-                winner.send_message(protocol.parseWinner(b))
+        with self._bets_lock:
+            bets = utils.load_bets()
+    
+        with self._agency_lock:
+            for b in bets:
+                if utils.has_won(b):
+                    # logging.info(f"Bet agency: {b.agency}")
+                    winner = self._clients_agancy[b.agency]
+                    winner.send_message(protocol.parseWinner(b))
 
-        for conn in self._clients:
-            conn.send_message(protocol.noMoreWinners())
-            conn.send_message(protocol.end_message())
+        with self._clients_lock:
+            for conn in self._clients:
+                conn.send_message(protocol.noMoreWinners())
+                conn.send_message(protocol.end_message())
+
+    def _client_thread_wrapper(self, conn):
+        """
+        Wrapper que ejecuta el handler del cliente y marca cuando el cliente terminó.
+        Así tenemos control sobre cuándo hacer join() de cada hilo.
+        """
+        try:
+            self.__handle_client_connection(conn)
+        except Exception as e:
+            logging.error(f"action: _client_thread_wrapper | result: fail | error: {e}")
+        finally:
+            # actualizo que termino un cliente
+            with self._done_lock:
+                self._done_clients += 1
+                logging.info(f"action: client_finished | result: in_progress | done_clients: {self._done_clients}")
+                if self._done_clients >= self._expected_clients:
+                    logging.info("action: all_expected_clients_done | result: success")
+                    self._all_done.set()
+
+    def join_client_threads(self, timeout=None):
+        """
+        Hace join() de todos los threads de clientes que estén en self._client_threads.
+        Si timeout != None, pasa ese timeout a cada join individual.
+        """
+        logging.info("action: join_client_threads | result: in_progress")
+        for t in self._client_threads:
+            try:
+                t.join(timeout)
+                logging.info(f"action: join_client_threads | thread {t.name} joined")
+            except RuntimeError as e:
+                logging.error(f"action: join_client_threads | result: fail | error: {e}")
+        # limpiar la lista de threads una vez se hizo join
+        self._client_threads.clear()
+        logging.info("action: join_client_threads | result: success")
