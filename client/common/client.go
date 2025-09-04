@@ -147,7 +147,7 @@ func (c *Client) StartClientLoop() {
 
 	go func() {
 		<-sigs
-		c.handle_SIGTERM_signal(sigs)
+		c.handle_SIGTERM_signal()
 		os.Exit(0)
 	}()
 
