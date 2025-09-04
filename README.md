@@ -178,3 +178,42 @@ Se espera que se redacte una sección del README en donde se indique cómo ejecu
 Se proveen [pruebas automáticas](https://github.com/7574-sistemas-distribuidos/tp0-tests) de caja negra. Se exige que la resolución de los ejercicios pase tales pruebas, o en su defecto que las discrepancias sean justificadas y discutidas con los docentes antes del día de la entrega. El incumplimiento de las pruebas es condición de desaprobación, pero su cumplimiento no es suficiente para la aprobación. Respetar las entradas de log planteadas en los ejercicios, pues son las que se chequean en cada uno de los tests.
 
 La corrección personal tendrá en cuenta la calidad del código entregado y casos de error posibles, se manifiesten o no durante la ejecución del trabajo práctico. Se pide a los alumnos leer atentamente y **tener en cuenta** los criterios de corrección informados  [en el campus](https://campusgrado.fi.uba.ar/mod/page/view.php?id=73393).
+
+# Solución
+
+
+### Ejercicio 1
+
+Se genero un script de bash generar-compose.sh, que permite configurar un nombre de archivo de configuracion ```.yaml``` y una cantidad de clientes determinada.
+
+  **Uso:**  
+  Se debe correr, desde la carpeta donde esta alacenado:
+  ```
+  ./generar-compose.sh <archivo_de_salida.yaml> <cantidad de clientes>
+  ```
+
+Este script automatiza la generación de un archivo docker-compose.yaml, siguiendo como modelo al archivo provisto por la catedra en la rama master, válido para levantar un entorno con un servidor y múltiples clientes conectados a una red común, destacándose por su validación robusta de entradas, su modularidad a través de funciones, la flexibilidad para variar dinámicamente la cantidad de clientes y la claridad con la que estructura los servicios y la red en Docker Compose.
+
+---
+
+### Ejercicio 2
+
+Para evitar que cada modificación en el archivo de configuración requiera reconstruir las imágenes de Docker, se incorpora en el script que genera el archivo `.yaml` la sección de **`volumes`**, tanto en el servicio del servidor como en el de los clientes.
+
+El uso de **Docker Volumes** permite persistir datos fuera del contenedor, de modo que los archivos de configuración se mantengan en el host y puedan ser modificados sin necesidad de reconstruir la imagen. Es decir, que al iniciar el servidor este dispone dentro del contenedor de la configuración inyectada desde el host, de lo contrario, el contenedor arrancaría vacío y sería necesario recompilar la imagen.  
+
+
+Para correrlo, se puede continuar utilizando el generador de script del ejercicio 1, de la siguiente manera:
+
+  **Uso:**  
+  Se debe correr, desde la raiz del proyecto:
+  ```
+  ./generar-compose.sh <archivo_de_salida.yaml> <cantidad de clientes>
+  ```
+
+  y luego se levantan los containers de docker con el comando:
+
+  ```
+  make docker-compose-up
+  ```
+
