@@ -5,6 +5,8 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -39,39 +41,40 @@ func NewClient(config ClientConfig) *Client {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-// func (c *Client) createClientSocket() error {
-// 	conn, err := net.Dial("tcp", c.config.ServerAddress)
-// 	if err != nil {
-// 		log.Criticalf(
-// 			"action: connect | result: fail | client_id: %v | error: %v",
-// 			c.config.ID,
-// 			err,
-// 		)
-// 		return err
-// 	}
-// 	c.conn = conn
-// 	return nil
-// }
+func (c *Client) createClientSocket() (*ConnectionHandler, error) {
+	conn, err := net.Dial("tcp", c.config.ServerAddress)
+	if err != nil {
+		log.Errorf(
+			"action: connect | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return nil, err
+	}
 
-// func (c *Client) SendStart() error {
-// 	err := c.sendall([]byte(startMessage()))
-// 	if err != nil {
-// 		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
-// 			c.config.ID, err)
-// 		return err
-// 	}
-// 	return nil
-// }
+	c.conn = conn
+	return NewConnectionHandler(conn), nil
+}
 
-// func (c *Client) SendFinish() error {
-// 	err := c.sendall([]byte(AllBetsDone()))
-// 	if err != nil {
-// 		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
-// 			c.config.ID, err)
-// 		return err
-// 	}
-// 	return nil
-// }
+func (c *Client) SendStart(handler *ConnectionHandler) error {
+	if err := handler.SendAll([]byte(startMessage())); err != nil {
+		log.Errorf("action: Send_start | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return err
+	}
+	return nil
+}
+
+func (c *Client) SendFinish(handler *ConnectionHandler) error {
+
+	if err := handler.SendAll([]byte(AllBetsDone())); err != nil {
+		log.Errorf("action: SendFinish | result: fail | client_id: %v | error: %v",
+			c.config.ID, err)
+		return err
+	}
+	return nil
+
+}
 
 func (c *Client) waitBeginLottery(handler *ConnectionHandler) (bool, error) {
 	response, err := handler.RecvAll()
@@ -103,9 +106,7 @@ func (c *Client) receiveWinners(handler *ConnectionHandler) ([]string, error) {
 		if IsWinnerResponse(response) {
 			doc := ParseWinnerDocument(response)
 			winners = append(winners, doc)
-			//log.Infof("action: Lottery | winner:%v", doc)
 		} else if IsNoMoreWinnerResponse(response) {
-			//log.Infof("action: NO MORE WINNERS")
 			break
 		} else {
 			log.Infof("action: RECEIVE_WINNERS | result: Fail ")
@@ -194,52 +195,30 @@ func (c *Client) close_connections() {
 		err := c.conn.Close()
 		if err != nil {
 			log.Errorf("Error cerrando la conexión: %v", err)
+		} else {
+			log.Infof("Conexión cerrada correctamente")
 		}
 	}
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// sigs := make(chan os.Signal, 1)
-	// stop := make(chan struct{})
-	// signal.Notify(sigs, syscall.SIGTERM)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM)
 
-	// go func() {
-	// 	select {
-	// 	case <-sigs:
-	// 		c.handle_SIGTERM_signal(sigs)
-	// 		// os.Exit(0)
-	// 	case <-stop:
-	// 		log.Infof("Cierre forzado de goroutine de señal")
-	// 		return
-	// 	}
-	// }()
-
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Errorf("action: connect | result: fail | client_id: %v | error: %v", c.config.ID, err)
-		return
-	}
-
-	//encapsular
-	defer func() {
-		if conn != nil {
-			err := conn.Close()
-			if err != nil {
-				log.Errorf("Error cerrando la conexión: %v", err)
-			}
-		}
+	go func() {
+		<-sigs
+		c.handle_SIGTERM_signal(sigs)
+		os.Exit(0)
 	}()
 
-	handler := NewConnectionHandler(conn)
-
-	//  NO importa como termine la funcion al final libero todo
-	// defer c.close_connections()
+	handler, err := c.createClientSocket()
+	if err != nil {
+		return
+	}
+	defer c.close_connections()
 
 	c.runClientSession(handler)
-
-	// close(stop)
-	//time.Sleep(500 * time.Millisecond)
 }
 
 func (c *Client) handle_SIGTERM_signal(sigs chan os.Signal) {
