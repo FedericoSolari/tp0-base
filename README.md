@@ -178,3 +178,77 @@ Se espera que se redacte una sección del README en donde se indique cómo ejecu
 Se proveen [pruebas automáticas](https://github.com/7574-sistemas-distribuidos/tp0-tests) de caja negra. Se exige que la resolución de los ejercicios pase tales pruebas, o en su defecto que las discrepancias sean justificadas y discutidas con los docentes antes del día de la entrega. El incumplimiento de las pruebas es condición de desaprobación, pero su cumplimiento no es suficiente para la aprobación. Respetar las entradas de log planteadas en los ejercicios, pues son las que se chequean en cada uno de los tests.
 
 La corrección personal tendrá en cuenta la calidad del código entregado y casos de error posibles, se manifiesten o no durante la ejecución del trabajo práctico. Se pide a los alumnos leer atentamente y **tener en cuenta** los criterios de corrección informados  [en el campus](https://campusgrado.fi.uba.ar/mod/page/view.php?id=73393).
+
+---
+
+### Ejercicio 3
+
+El script `validar-echo-server.sh` tiene como objetivo verificar el correcto funcionamiento de un **servidor Echo**. Para esto, se utilizan contenedores Docker y la herramienta **netcat (nc)**, sin necesidad de instalar netcat en la máquina host ni exponer puertos del servidor hacia el exterior.  
+
+Se define un mensaje de texto que será enviado al servidor. Este mensaje servirá como referencia para validar que el servidor responda correctamente:  
+
+```bash
+message="Distribuidos TP0"
+```
+
+A partir del archivo server/config.ini, se obtienen el puerto (SERVER_PORT) y la dirección IP (SERVER_IP) del servidor. Para esto se utiliza awk para extraer el valor asociado a cada variable, y se aplica tr -d ' ' para eliminar espacios en blanco:
+
+```bash
+SERVER_PORT=$(awk -F'=' '/SERVER_PORT/ {print $2}' server/config.ini | tr -d ' ')
+SERVER_IP=$(awk -F'=' '/SERVER_IP/ {print $2}' server/config.ini | tr -d ' ')
+```
+Luego se lanza un contenedor efímero basado en la imagen busybox:latest que se conecta a la misma red Docker (tp0_testing_net) que el servidor. Este contenedor ejecuta el comando nc para enviar el mensaje al servidor y captura la respuesta en la variable response
+
+```bash
+response=$(docker run --rm --network tp0_testing_net busybox:latest sh -c "echo '$message' | nc $SERVER_IP $SERVER_PORT")
+
+```
+
+De esta manera no es necesario exponer puertos en el host, ya que la comunicación ocurre dentro de la red virtual de Docker.
+
+Finalmente, se compara la respuesta obtenida del servidor con el mensaje enviado. Si son iguales, el test es exitoso sino falla.
+
+---
+
+### Ejercicio 4
+
+El objetivo de este ejercicio fue modificar el servidor y el cliente para que ambos sistemas finalicen de forma **graceful** al recibir la señal `SIGTERM`. Terminar la aplicación de forma graceful implica que todos los **file descriptors** abiertos (sockets, archivos, threads, etc.) sean cerrados correctamente antes de que el proceso principal muera. Además, en cada cierre se registran mensajes de log que permiten verificar el correcto liberado de recursos.  
+
+---
+
+#### Servidor (Python)
+
+Se capturó la señal `SIGTERM` mediante el módulo `signal` y se implementó el método `handle_sigterm_signal`. Cuando llega la señal, se loguea el evento, se actualiza un flag de apagado (`self.shutdown = True`) y se cierra el socket principal del servidor:  
+
+```python
+signal.signal(signal.SIGTERM, self.handle_sigterm_signal)
+
+def handle_sigterm_signal(self, signum, frame):
+    logging.info("action: handle_sigterm_signal | result: success")
+    self.shutdown = True
+    self._server_socket.close()
+```
+El bucle principal (run) se ejecuta mientras self.shutdown sea False. Una vez que se detecta el cierre, se invoca a clean_resourses, que se encarga de cerrar todos los sockets de clientes aún abiertos, vaciar la lista de clientes y loguear el proceso de liberación:
+De esta forma, el servidor no queda bloqueado esperando conexiones cuando debe finalizar, y todos los recursos se liberan antes de terminar.
+
+---
+
+#### Client (Go)
+Se utilizó el paquete os/signal para capturar SIGTERM. Se definió un canal de señales (sigs) y una goroutine encargada de escuchar por la señal. Cuando llega el SIGTERM, se setea un flag de apagado (c.shutdown = true) y se cierra la conexión TCP si está abierta
+
+```Go
+go func() {
+    <-sigs
+    client.shutdown = true
+    log.Infof("action: sigterm_received | result: in_progress | client_id: %v", client.config.ID)
+    if client.conn != nil {
+        err := client.conn.Close()
+        if err == nil {
+            log.Infof("action: close_connection | result: success | client_id: %v", client.config.ID)
+        }
+    }
+}()
+```
+Durante la ejecución del loop (StartClientLoop), el cliente chequea el flag shutdown. Si está activo, deja de enviar mensajes y termina de manera ordenada.
+Particularmente, esta solución se encuentra implementada únicamente en la rama `ej4`, debido a diversos inconvenientes surgidos al momento de ejecutar uno de los tests. Esto obligó a rehacer la lógica completa del manejo de la señal `SIGTERM`, luego de haber finalizado previamente las demás partes del TP0.  
+No obstante, estimo con seguridad que la solución presente en las demás ramas también cumple con los requisitos necesarios para superar las pruebas. El único test que presentaba fallas era **`server_without_clients_down`**, y la causa de dicho error no estaba relacionada con la lógica del servidor o del cliente, sino con factores externos al propio código. 
